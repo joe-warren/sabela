@@ -423,9 +423,9 @@ loadNotebookH app _rn (LoadRequest path) = liftIO $ do
     raw <- TIO.readFile absPath
     cells <- mapM (segmentToCell (appNotebook app)) (parseMarkdown raw)
     let nb = Notebook (T.pack path) cells
-    -- Cancel any in-flight execution and kill sessions
+    -- Cancel any in-flight execution and reclaim GHCi memory via :reload
     void $ bumpGeneration app
-    void $ forkIO $ killAllSessions app
+    void $ forkIO $ reloadHaskellSession app
     modifyNotebook (appNotebook app) (const nb)
     broadcastNotebook app
     pure nb

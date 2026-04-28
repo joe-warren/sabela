@@ -15,6 +15,7 @@ module Sabela.Handlers (
     setupReplProject,
     updateCellSource,
     killAllSessions,
+    reloadHaskellSession,
 
     -- * Re-exports from submodules
     module Sabela.Handlers.Shared,
@@ -236,6 +237,19 @@ clearAllOutputs nb = nb{nbCells = map clr (nbCells nb)}
 killAllSessions :: App -> IO ()
 killAllSessions app =
     forceResetAllSessions (appSessions app)
+
+reloadHaskellSession :: App -> IO ()
+reloadHaskellSession app = do
+    debugLog app "[handler] reloadHaskellSession: :reload"
+    mSess <- getHaskellSession (appSessions app)
+    forM_ mSess $ \backend -> do
+        result <- try (ST.sbRunBlock backend ":reload")
+        case result of
+            Left (e :: SomeException) ->
+                handleKernelCrash
+                    app
+                    ("Kernel crashed during :reload: " <> T.pack (show e))
+            Right _ -> pure ()
 
 executeSingleCell :: App -> Int -> Int -> IO ()
 executeSingleCell app gen cid = do

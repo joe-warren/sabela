@@ -68,14 +68,13 @@ spec = describe "Sabela.Topo" $ do
                 [] -> expectationFailure "trOrdered should not be empty"
             trCycleIds result `shouldBe` S.empty
 
-        it "runs both cells when they redefine the same name (last-wins)" $ do
+        it "flags the LATER cell when two cells redefine the same name (first-wins)" $ do
             let cells = [mkCell 1 "let x = 1", mkCell 2 "let x = 2"]
-                (result, redefMap) = computeTopoOrder cells
-            -- No redef errors under last-wins; both cells run, cell 2's
-            -- binding shadows cell 1's in the live session.
-            redefMap `shouldBe` M.empty
-            map cellId (trOrdered result) `shouldContain` [1]
-            map cellId (trOrdered result) `shouldContain` [2]
+                (_, redefMap) = computeTopoOrder cells
+            -- Cell 1 owns x. Cell 2 is flagged as a redefinition of x;
+            -- it will be skipped at execution time and a redef error
+            -- will surface on it.
+            redefMap `shouldBe` M.fromList [(2, ["x"])]
 
         it "detects a simple two-cell cycle" $ do
             let cells =
@@ -288,41 +287,45 @@ spec = describe "Sabela.Topo" $ do
             -- x' and x are separate
             S.member "x" defs `shouldBe` False
 
-    describe "computeTopoOrder — redefinition semantics (last-wins)" $ do
-        it "three-cell chain where a later cell redefines a name used upstream" $ do
+    describe "computeTopoOrder — redefinition semantics (first-wins)" $ do
+        it "later cell redefining a used name is flagged; downstream binds to first" $ do
             let cells =
                     [ mkCell 1 "let x = 1"
                     , mkCell 2 "let y = x + 1"
                     , mkCell 3 "let x = 2"
                     ]
-                (result, redefMap) = computeTopoOrder cells
-                orderedIds = map cellId (trOrdered result)
-            redefMap `shouldBe` M.empty
-            -- All three cells run; cell 3 is the canonical owner of `x`, so
-            -- cell 2 (which uses x) depends on cell 3 and follows it.
-            orderedIds `shouldContain` [1]
-            orderedIds `shouldContain` [2]
-            orderedIds `shouldContain` [3]
+                (_, redefMap) = computeTopoOrder cells
+                (defMap, _) = buildDefMap cells
+            -- Cell 1 owns x (first-wins). Cell 2's `y` depends on cell
+            -- 1, not cell 3. Cell 3 is flagged.
+            M.lookup "x" defMap `shouldBe` Just 1
+            M.lookup "y" defMap `shouldBe` Just 2
+            redefMap `shouldBe` M.fromList [(3, ["x"])]
 
-        it "three-way redef: all three cells run, no errors" $ do
+        it "three-way redef: only the first cell owns the name; others flagged" $ do
             let cells =
                     [ mkCell 1 "let x = 1"
                     , mkCell 2 "let x = 2"
                     , mkCell 3 "let x = 3"
                     ]
-                (result, redefMap) = computeTopoOrder cells
-            redefMap `shouldBe` M.empty
-            map cellId (trOrdered result) `shouldContain` [1]
-            map cellId (trOrdered result) `shouldContain` [2]
-            map cellId (trOrdered result) `shouldContain` [3]
+                (defMap, _) = buildDefMap cells
+                (_, redefMap) = computeTopoOrder cells
+            M.lookup "x" defMap `shouldBe` Just 1
+            redefMap `shouldBe` M.fromList [(2, ["x"]), (3, ["x"])]
 
-        it "redef-and-new-def cell is canonical owner of both" $ do
+        it "redef cell drops ALL its defs (even genuinely new ones)" $ do
+            -- Cell 2 redefines x (already owned by cell 1) AND
+            -- introduces y. Since cell 2 won't run, neither x nor y
+            -- ends up in the session — so y must NOT be in defMap.
             let cells =
                     [ mkCell 1 "let x = 1"
                     , mkCell 2 "let x = 2\nlet y = 1"
                     ]
+                (defMap, _) = buildDefMap cells
                 (_, redefMap) = computeTopoOrder cells
-            redefMap `shouldBe` M.empty
+            redefMap `shouldBe` M.fromList [(2, ["x"])]
+            M.lookup "x" defMap `shouldBe` Just 1
+            M.lookup "y" defMap `shouldBe` Nothing
 
     describe "cellNames — literals and comments are not scanned" $ do
         it "does NOT pick up identifiers inside string literals" $ do
@@ -439,6 +442,130 @@ spec = describe "Sabela.Topo" $ do
                 (result, _) = computeTopoOrder cells
             trCycleIds result `shouldBe` S.empty
             map cellId (trOrdered result) `shouldBe` [1]
+
+    describe "Untitled.md scenario: redefining f x in a separate cell" $ do
+        -- Mirrors the actual Untitled.md notebook: two cells use (f . g),
+        -- two cells define f (the second redefines), one cell defines g.
+        -- Under first-wins, cell 2 owns f, cell 3 owns g, cell 5 is
+        -- flagged as a redefinition error.
+        let cells =
+                [ mkCell 1 "(f . g) 45"
+                , mkCell 2 "f x = x + 5"
+                , mkCell 3 "g x = x + 25"
+                , mkCell 4 "(f . g) 50"
+                , mkCell 5 "f x = x + 10"
+                ]
+        it "cell 5's redefinition of f is flagged" $ do
+            let (_, redefMap) = computeTopoOrder cells
+            redefMap `shouldBe` M.fromList [(5, ["f"])]
+
+        it "cell 2 (the first definer) owns f in defMap" $ do
+            let (defMap, _) = buildDefMap cells
+            M.lookup "f" defMap `shouldBe` Just 2
+            M.lookup "g" defMap `shouldBe` Just 3
+
+        it "downstream cells (1, 4) depend on cell 2 for f, not cell 5" $ do
+            let (defMap, _) = buildDefMap cells
+                deps = buildDepGraph defMap cells
+            M.findWithDefault S.empty 1 deps
+                `shouldBe` S.fromList [2, 3]
+            M.findWithDefault S.empty 4 deps
+                `shouldBe` S.fromList [2, 3]
+
+        it "editing the redef cell (5) flags it but runs nothing else" $ do
+            let (result, redefMap) = selectAffectedTopo 5 cells
+            redefMap `shouldBe` M.fromList [(5, ["f"])]
+            map cellId (trOrdered result) `shouldBe` [5]
+
+        it "editing the canonical definer (cell 2) propagates to cells 1 and 4" $ do
+            let (result, _) = selectAffectedTopo 2 cells
+                ids = map cellId (trOrdered result)
+            ids `shouldContain` [2]
+            ids `shouldContain` [1]
+            ids `shouldContain` [4]
+            ids `shouldNotContain` [5]
+
+    describe "DAG: function-scoped variables across cells" $ do
+        -- These cases exercise scope-aware analysis that the prior
+        -- textual heuristic could not get right consistently.
+        it "two cells each binding x do not produce a dependency edge" $ do
+            let cells =
+                    [ mkCell 1 "f x = x + 1"
+                    , mkCell 2 "g x = x * 2"
+                    ]
+                (defMap, _) = buildDefMap cells
+                deps = buildDepGraph defMap cells
+            -- defMap only contains f and g; x is a local param in both.
+            S.member "x" (M.keysSet defMap) `shouldBe` False
+            M.findWithDefault S.empty 1 deps `shouldBe` S.empty
+            M.findWithDefault S.empty 2 deps `shouldBe` S.empty
+
+        it "where-clause locals do not create cross-cell edges" $ do
+            let cells =
+                    [ mkCell 1 "shout msg = greet msg\n  where greet m = m"
+                    , mkCell 2 "describe greet = greet 1"
+                    ]
+                (defMap, _) = buildDefMap cells
+                deps = buildDepGraph defMap cells
+            -- Cell 1's `greet` is a where-binder, not a top-level def.
+            -- Cell 2 binds `greet` as a function param. Neither is a
+            -- top-level name; no edge should connect them.
+            M.lookup "greet" defMap `shouldBe` Nothing
+            M.findWithDefault S.empty 1 deps `shouldBe` S.empty
+            M.findWithDefault S.empty 2 deps `shouldBe` S.empty
+
+        it "do-binders do not shadow a top-level def in a sibling cell" $ do
+            let cells =
+                    [ mkCell 1 "msg = \"hello\""
+                    , mkCell 2 "act = do\n  msg <- getLine\n  putStrLn msg"
+                    ]
+                (defMap, _) = buildDefMap cells
+                deps = buildDepGraph defMap cells
+            -- The `msg <- getLine` in cell 2 binds `msg` locally to the
+            -- do-block. Cell 2's top-level def is `act`. There must be
+            -- no edge from cell 2 to cell 1.
+            M.lookup "msg" defMap `shouldBe` Just 1
+            S.member 1 (M.findWithDefault S.empty 2 deps) `shouldBe` False
+
+        it "list-comp generators do not create false edges" $ do
+            let cells =
+                    [ mkCell 1 "x = 99"
+                    , mkCell 2 "evens = [n * 2 | n <- [1, 2, 3], let x = n + 1]"
+                    ]
+                (defMap, _) = buildDefMap cells
+                deps = buildDepGraph defMap cells
+            M.lookup "x" defMap `shouldBe` Just 1
+            -- Cell 2's `let x = n + 1` is a comprehension-local binder;
+            -- it does NOT pull in cell 1's x.
+            S.member 1 (M.findWithDefault S.empty 2 deps) `shouldBe` False
+
+    describe "DAG: imports and pragmas do not enter the graph" $ do
+        it "an `import` line produces no defs and no deps" $ do
+            let cells = [mkCell 1 "import Data.Map (Map)"]
+                (defMap, _) = buildDefMap cells
+                deps = buildDepGraph defMap cells
+            defMap `shouldBe` M.empty
+            M.findWithDefault S.empty 1 deps `shouldBe` S.empty
+
+        it "a `{-# LANGUAGE ... #-}` pragma cell is empty in the DAG" $ do
+            let cells = [mkCell 1 "{-# LANGUAGE OverloadedStrings #-}"]
+                (defMap, _) = buildDefMap cells
+                deps = buildDepGraph defMap cells
+            defMap `shouldBe` M.empty
+            M.findWithDefault S.empty 1 deps `shouldBe` S.empty
+
+        it "a `:set -X...` GHCi directive cell is empty in the DAG" $ do
+            let cells = [mkCell 1 ":set -XTypeApplications"]
+                (defMap, _) = buildDefMap cells
+                deps = buildDepGraph defMap cells
+            defMap `shouldBe` M.empty
+            M.findWithDefault S.empty 1 deps `shouldBe` S.empty
+
+        it "imports + decl: defMap captures only the decl's name" $ do
+            let cells =
+                    [mkCell 1 "import Data.Text (Text)\ngreet name = name"]
+                (defMap, _) = buildDefMap cells
+            defMap `shouldBe` M.fromList [("greet", 1)]
 
     describe "computeTopoOrder — edge cases" $ do
         it "handles a single cell" $ do
