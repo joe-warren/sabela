@@ -6,7 +6,7 @@ import qualified Data.Text as T
 import Hub.Config (loadConfig)
 import Hub.Ecs (cliEcsBackend)
 import Hub.Proxy (hubApp)
-import Hub.Reaper (startReaper)
+import Hub.Reaper (startReaper, sweepOrphans)
 import Hub.Session (newSessionManager)
 import Hub.Types
 import qualified Network.HTTP.Client as HC
@@ -20,6 +20,7 @@ main = do
     validateConfig cfg
     mgr <- HC.newManager TLS.tlsManagerSettings
     sm <- newSessionManager cliEcsBackend cfg
+    sweepOrphans sm
     startReaper sm
     hPutStrLn stderr $
         "[hub] Starting on port "

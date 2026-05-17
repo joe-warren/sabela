@@ -20,7 +20,7 @@ newtype SessionId = SessionId Text
     deriving (Eq, Ord, Show)
 
 newtype TaskId = TaskId Text
-    deriving (Eq, Show)
+    deriving (Eq, Ord, Show)
 
 data TaskStatus
     = TaskPending
@@ -67,4 +67,5 @@ data EcsBackend = EcsBackend
     { ebRunTask :: TaskConfig -> UserId -> IO TaskId
     , ebDescribeTask :: TaskConfig -> TaskId -> IO TaskStatus
     , ebStopTask :: TaskConfig -> TaskId -> IO ()
+    , ebListRunningTasks :: TaskConfig -> IO [TaskId]
     }

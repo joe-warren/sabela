@@ -15,6 +15,7 @@ cliEcsBackend =
         { ebRunTask = cliRunTask
         , ebDescribeTask = cliDescribeTask
         , ebStopTask = cliStopTask
+        , ebListRunningTasks = cliListRunningTasks
         }
 
 cliRunTask :: TaskConfig -> UserId -> IO TaskId
@@ -98,6 +99,24 @@ cliStopTask cfg (TaskId taskArn) = do
             , T.unpack taskArn
             ]
     pure ()
+
+cliListRunningTasks :: TaskConfig -> IO [TaskId]
+cliListRunningTasks cfg = do
+    out <-
+        aws
+            cfg
+            [ "ecs"
+            , "list-tasks"
+            , "--family"
+            , T.unpack (tcTaskDefinition cfg)
+            , "--desired-status"
+            , "RUNNING"
+            , "--query"
+            , "taskArns[]"
+            , "--output"
+            , "text"
+            ]
+    pure $ map TaskId $ filter (not . T.null) $ T.words (T.pack out)
 
 -- | Run an AWS CLI command with cluster and region from config.
 aws :: TaskConfig -> [String] -> IO String

@@ -4,6 +4,8 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Sabela Dashboard</title>
+<link rel="icon" href="data:image/svg+xml,%3Csvg%20xmlns='http://www.w3.org/2000/svg'%20viewBox='0%200%2032%2032'%3E%3Crect%20width='32'%20height='32'%20rx='7'%20fill='%230066ff'/%3E%3Cpath%20d='M10%2026L19%206M14.5%2016.5L23%2026'%20stroke='%23fff'%20stroke-width='3'%20fill='none'%20stroke-linecap='round'%20stroke-linejoin='round'/%3E%3C/svg%3E">
+
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.css">
 <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.js"></script>
@@ -19,25 +21,27 @@
   })();
 </script>
 <style>
-  @import url('https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=Source+Serif+4:ital,wght@0,400;0,600;1,400&display=swap');
-  @import url('https://fonts.googleapis.com/css2?family=Source+Sans+3:wght@300;400;600;700&family=Source+Code+Pro:wght@400;500&display=swap');
+  @import url('https://fonts.googleapis.com/css2?family=Geist:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500;600;700&display=swap');
 
   :root {
-    /* light — Catppuccin Latte */
-    --bg: #eff1f5;
-    --bg-muted: #e6e9ef;
+    --font-sans: 'Geist', -apple-system, BlinkMacSystemFont, 'Inter', system-ui, sans-serif;
+    --font-mono: 'JetBrains Mono', ui-monospace, SFMono-Regular, monospace;
+
+    /* light — clean white with cool accent */
+    --bg: #ffffff;
+    --bg-muted: #fafafa;
     --bg-card: #ffffff;
-    --fg: #4c4f69;
-    --fg-dim: #6c6f85;
-    --fg-heading: #1e2030;
-    --accent: #1e66f5;
-    --accent-rgb: 30,102,245;
-    --accent-hover: #1252cf;
-    --border: #ccd0da;
-    --border-light: #dce0e8;
+    --fg: #0a0a0a;
+    --fg-dim: #71717a;
+    --fg-heading: #000000;
+    --accent: #0066ff;
+    --accent-rgb: 0,102,255;
+    --accent-hover: #0052cc;
+    --border: #e4e4e7;
+    --border-light: #f4f4f5;
     --main-max-w: 760px;
     --radius: 8px;
-    --shadow: 0 1px 3px rgba(76,79,105,0.08);
+    --shadow: 0 1px 3px rgba(0,0,0,0.06);
     --err-border: #fecaca;
     --err-bg: #fef2f2;
     --err-fg: #991b1b;
@@ -61,14 +65,16 @@
     --err-fg: #f38ba8;
   }
 
-  * { margin: 0; padding: 0; box-sizing: border-box; }
+  * { margin: 0; padding: 0; box-sizing: border-box; font-variant-ligatures: none; font-feature-settings: "calt" 0, "liga" 0; }
   html, body { height: 100%; overflow-x: hidden; }
   body {
-    font-family: 'Source Serif 4', 'Source Sans 3', Georgia, -apple-system, BlinkMacSystemFont, sans-serif;
+    font-family: var(--font-sans);
     background: var(--bg);
     color: var(--fg);
-    line-height: 1.7;
-    font-size: 16px;
+    line-height: 1.65;
+    font-size: 15px;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
   }
 
   /* ── Header ────────────────────────────────── */
@@ -81,14 +87,14 @@
     backdrop-filter: saturate(120%) blur(6px);
   }
   .dashboard-header h1 {
-    font-family: 'IBM Plex Mono', 'Source Code Pro', monospace;
+    font-family: var(--font-mono);
     font-size: 15px; font-weight: 600; letter-spacing: 0.3px;
     color: var(--fg-heading);
     flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
   }
   .header-actions { display: flex; gap: 8px; align-items: center; }
   .header-actions a, .header-actions button {
-    font-family: 'IBM Plex Mono', 'Source Code Pro', monospace;
+    font-family: var(--font-mono);
     font-size: 12px; font-weight: 500;
     padding: 6px 12px; border-radius: 6px; border: 1px solid var(--border);
     background: transparent; color: var(--fg-dim); cursor: pointer;
@@ -126,11 +132,11 @@
   .dash-section ul, .dash-section ol { margin: 0 0 12px 24px; }
   .dash-section a { color: var(--accent); }
   .dash-section code {
-    font-family: 'Source Code Pro', monospace; font-size: 14px;
+    font-family: var(--font-mono); font-size: 14px;
     background: var(--bg-muted); padding: 2px 6px; border-radius: 4px;
   }
   .dash-section pre {
-    font-family: 'Source Code Pro', monospace; font-size: 14px;
+    font-family: var(--font-mono); font-size: 14px;
     background: var(--bg-muted); padding: 12px 16px; border-radius: var(--radius);
     overflow-x: auto; margin-bottom: 12px;
   }
@@ -193,14 +199,14 @@
   .dash-output .mime-svg svg { max-width: 100%; height: auto; }
   .dash-output .mime-image img { max-width: 100%; display: block; }
   .dash-output .mime-json {
-    font-family: 'Source Code Pro', monospace; font-size: 13px;
+    font-family: var(--font-mono); font-size: 13px;
     background: var(--bg-muted); padding: 12px 16px;
     white-space: pre-wrap; word-break: break-word;
   }
   .dash-output .mime-markdown { padding: 16px; }
   .dash-output .mime-latex { padding: 16px; text-align: center; }
   .dash-output .mime-plain {
-    font-family: 'Source Code Pro', monospace; font-size: 14px;
+    font-family: var(--font-mono); font-size: 14px;
     padding: 12px 16px; white-space: pre-wrap;
   }
 
@@ -228,7 +234,7 @@
     margin-bottom: 24px; padding: 12px 16px;
     border: 1px solid var(--err-border); border-radius: var(--radius);
     background: var(--err-bg); color: var(--err-fg);
-    font-family: 'IBM Plex Mono', 'Source Code Pro', monospace; font-size: 13px;
+    font-family: var(--font-mono); font-size: 13px;
     white-space: pre-wrap;
   }
 
@@ -310,19 +316,20 @@ function toggleTheme() {
 function iframeContentStyle() {
   const isDark = currentTheme() === 'dark';
   const bg = isDark ? '#1e1e2e' : '#ffffff';
-  const fg = isDark ? '#cdd6f4' : '#31333F';
-  const fgHead = isDark ? '#f5f5ff' : '#1e2030';
-  const muted = isDark ? '#262637' : '#f0f2f6';
-  const border = isDark ? '#313244' : '#e6e9ef';
-  const accent = isDark ? '#89b4fa' : '#1e66f5';
-  return `<style>body{background:${bg};color:${fg};font-family:'Source Serif 4','Source Sans 3',Georgia,sans-serif;font-size:15px;margin:0;padding:12px 16px;line-height:1.6}img{max-width:100%}a{color:${accent}}table{border-collapse:separate;border-spacing:0;width:100%;border:1px solid ${border};border-radius:8px;overflow:hidden;margin:14px 0;font-size:14px}th,td{padding:10px 14px;text-align:left;border-bottom:1px solid ${border}}tr:last-child td{border-bottom:none}th{background:${muted};color:${fgHead};font-weight:600}tr:nth-child(even) td{background:${isDark ? 'rgba(137,180,250,0.05)' : 'rgba(30,102,245,0.04)'}}input,select,button{font-family:inherit;font-size:14px;accent-color:${accent}}</style>`;
+  const fg = isDark ? '#cdd6f4' : '#0a0a0a';
+  const fgHead = isDark ? '#f5f5ff' : '#000000';
+  const muted = isDark ? '#262637' : '#fafafa';
+  const border = isDark ? '#313244' : '#e4e4e7';
+  const accent = isDark ? '#89b4fa' : '#0066ff';
+  const altRow = isDark ? 'rgba(137,180,250,0.05)' : 'rgba(0,102,255,0.04)';
+  return `<style>body{background:${bg};color:${fg};font-family:'Geist',-apple-system,BlinkMacSystemFont,system-ui,sans-serif;font-size:15px;margin:0;padding:12px 16px;line-height:1.6;-webkit-font-smoothing:antialiased}img{max-width:100%}a{color:${accent}}table{border-collapse:separate;border-spacing:0;width:100%;border:1px solid ${border};border-radius:8px;overflow:hidden;margin:14px 0;font-size:14px}th,td{padding:10px 14px;text-align:left;border-bottom:1px solid ${border}}tr:last-child td{border-bottom:none}th{background:${muted};color:${fgHead};font-weight:600}tr:nth-child(even) td{background:${altRow}}input,select,button{font-family:inherit;font-size:14px;accent-color:${accent}}</style>`;
 }
 function widgetIframeStyle() {
   const isDark = currentTheme() === 'dark';
-  const fg = isDark ? '#cdd6f4' : '#31333F';
-  const fgDim = isDark ? '#9399b2' : '#808495';
-  const accent = isDark ? '#89b4fa' : '#1e66f5';
-  return `<style>body{background:transparent;color:${fg};font-family:'IBM Plex Mono','Source Code Pro',monospace;font-size:14px;margin:0;padding:6px 12px;line-height:1.2}input,select{font-family:inherit;font-size:14px;accent-color:${accent};vertical-align:middle}button{font-family:inherit;font-size:14px;cursor:pointer;accent-color:${accent};vertical-align:middle}label{font-weight:600;font-size:13px;color:${fgDim};display:inline-block;margin-right:8px;vertical-align:middle}</style>`;
+  const fg = isDark ? '#cdd6f4' : '#0a0a0a';
+  const fgDim = isDark ? '#9399b2' : '#71717a';
+  const accent = isDark ? '#89b4fa' : '#0066ff';
+  return `<style>body{background:transparent;color:${fg};font-family:'JetBrains Mono',ui-monospace,monospace;font-size:14px;margin:0;padding:6px 12px;line-height:1.2;font-variant-ligatures:none;font-feature-settings:"calt" 0,"liga" 0}input,select{font-family:inherit;font-size:14px;accent-color:${accent};vertical-align:middle}button{font-family:inherit;font-size:14px;cursor:pointer;accent-color:${accent};vertical-align:middle}label{font-weight:600;font-size:13px;color:${fgDim};display:inline-block;margin-right:8px;vertical-align:middle}</style>`;
 }
 // Live-follow OS theme until the user pins a choice
 if (window.matchMedia) {

@@ -14,6 +14,7 @@ data MockState = MockState
     { mockRunCalls :: TVar Int
     , mockStopCalls :: TVar Int
     , mockTaskStatus :: TVar TaskStatus
+    , mockRunningTasks :: TVar [TaskId]
     }
 
 newMockState :: IO MockState
@@ -21,8 +22,14 @@ newMockState = do
     runs <- newTVarIO 0
     stops <- newTVarIO 0
     status <- newTVarIO (TaskRunning "10.0.1.100")
+    running <- newTVarIO []
     pure
-        MockState{mockRunCalls = runs, mockStopCalls = stops, mockTaskStatus = status}
+        MockState
+            { mockRunCalls = runs
+            , mockStopCalls = stops
+            , mockTaskStatus = status
+            , mockRunningTasks = running
+            }
 
 mockEcsBackend :: MockState -> EcsBackend
 mockEcsBackend ms =
@@ -34,6 +41,8 @@ mockEcsBackend ms =
             readTVarIO (mockTaskStatus ms)
         , ebStopTask = \_ _ -> do
             atomically $ modifyTVar' (mockStopCalls ms) (+ 1)
+        , ebListRunningTasks = \_ ->
+            readTVarIO (mockRunningTasks ms)
         }
 
 testConfig :: HubConfig

@@ -12,6 +12,7 @@ import Test.Hspec (hspec)
 import qualified Test.OutputSpec as OutputSpec
 import qualified Test.ParseSpec as ParseSpec
 import qualified Test.PreinstalledSpec as PreinstalledSpec
+import qualified Test.ProseRoundTripSpec as ProseRoundTripSpec
 import qualified Test.ScratchpadRenderSpec as ScratchpadRenderSpec
 import qualified Test.SessionSpec as SessionSpec
 import qualified Test.ToolParseSpec as ToolParseSpec
@@ -26,6 +27,7 @@ main = hspec $ do
     ParseSpec.spec
     OutputSpec.spec
     PreinstalledSpec.spec
+    ProseRoundTripSpec.spec
     GenerationSpec.spec
     AiDocSpec.spec
     AiHandlesSpec.spec

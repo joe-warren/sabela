@@ -10,6 +10,9 @@ module Sabela.Server (
     -- * Exposed for testing
     checkBearer,
     isAiApi,
+    proseMarker,
+    cellsToSegments,
+    splitProseSegments,
 ) where
 
 import Control.Concurrent (forkIO)
@@ -39,11 +42,13 @@ import Network.HTTP.Types (
     hContentType,
     status200,
     status401,
+    status404,
  )
 import Network.Wai (
     Middleware,
     RequestBodyLength (..),
     pathInfo,
+    queryString,
     requestBodyLength,
     requestHeaders,
     responseLBS,
@@ -54,6 +59,7 @@ import System.Directory (
     canonicalizePath,
     createDirectoryIfMissing,
     doesDirectoryExist,
+    doesFileExist,
     listDirectory,
     removeDirectoryRecursive,
     removeFile,
@@ -64,6 +70,7 @@ import System.FilePath (
     normalise,
     splitDirectories,
     takeDirectory,
+    takeExtension,
     (</>),
  )
 
@@ -223,8 +230,11 @@ type FullAPI =
     JsonAPI
         :<|> "api" :> "events" :> Raw
         :<|> "api" :> "export" :> "dashboard" :> Raw
+        :<|> "api" :> "export" :> "slideshow" :> Raw
         :<|> "api" :> "export" :> "markdown" :> Raw
         :<|> "dashboard" :> Raw
+        :<|> "slideshow" :> Raw
+        :<|> "api" :> "asset" :> Raw
         :<|> Raw
 
 fullProxy :: Proxy FullAPI
@@ -235,6 +245,9 @@ indexHtml = $(makeRelativeToProject "static/index.html" >>= embedFile)
 
 dashboardHtml :: BS.ByteString
 dashboardHtml = $(makeRelativeToProject "static/dashboard.html" >>= embedFile)
+
+slideshowHtml :: BS.ByteString
+slideshowHtml = $(makeRelativeToProject "static/slideshow.html" >>= embedFile)
 
 staticApp :: Application
 staticApp _req resp =
@@ -251,6 +264,65 @@ dashboardApp _req resp =
             status200
             [(hContentType, "text/html; charset=utf-8")]
             (LBS.fromStrict dashboardHtml)
+
+slideshowApp :: Application
+slideshowApp _req resp =
+    resp $
+        responseLBS
+            status200
+            [(hContentType, "text/html; charset=utf-8")]
+            (LBS.fromStrict slideshowHtml)
+
+-- | Serve a raw file (images, etc.) from the work directory, addressed by
+-- the @?path=@ query param relative to the work-dir root. The path is
+-- canonicalized and confined to the work directory.
+assetApp :: App -> Application
+assetApp app req resp = do
+    let workDir = envWorkDir (appEnv app)
+        mPath = do
+            (_, v) <- lookupQuery "path" (queryString req)
+            TE.decodeUtf8 <$> v
+    case mPath of
+        Nothing -> notFound
+        Just relText -> do
+            rootCanon <- canonicalizePath workDir
+            fileCanon <- canonicalizePath (workDir </> T.unpack relText)
+            exists <- doesFileExist fileCanon
+            if not (isWithinPath rootCanon fileCanon) || not exists
+                then notFound
+                else do
+                    bytes <- LBS.readFile fileCanon
+                    resp $
+                        responseLBS
+                            status200
+                            [ (hContentType, assetContentType fileCanon)
+                            , ("Cache-Control", "no-cache")
+                            ]
+                            bytes
+  where
+    lookupQuery k q = case [p | p@(key, _) <- q, key == k] of
+        (x : _) -> Just x
+        [] -> Nothing
+    notFound =
+        resp $
+            responseLBS
+                status404
+                [(hContentType, "text/plain; charset=utf-8")]
+                "asset not found"
+
+assetContentType :: FilePath -> BS.ByteString
+assetContentType p = case map toLower (takeExtension p) of
+    ".png" -> "image/png"
+    ".jpg" -> "image/jpeg"
+    ".jpeg" -> "image/jpeg"
+    ".gif" -> "image/gif"
+    ".webp" -> "image/webp"
+    ".avif" -> "image/avif"
+    ".svg" -> "image/svg+xml"
+    ".bmp" -> "image/bmp"
+    ".ico" -> "image/x-icon"
+    ".pdf" -> "application/pdf"
+    _ -> "application/octet-stream"
 
 exportDashboardApp :: App -> Application
 exportDashboardApp app _req resp = do
@@ -275,10 +347,33 @@ exportDashboardApp app _req resp = do
             ]
             body
 
+exportSlideshowApp :: App -> Application
+exportSlideshowApp app _req resp = do
+    nb <- readNotebook (appNotebook app)
+    let body = renderStaticDashboard slideshowHtml nb
+        title = nbTitle nb
+        filename = T.takeWhileEnd (/= '/') (T.dropWhileEnd (== '/') title)
+        htmlName =
+            if T.null filename
+                then "slideshow.html"
+                else T.replace ".md" ".slides.html" filename
+    resp $
+        responseLBS
+            status200
+            [ (hContentType, "text/html; charset=utf-8")
+            ,
+                ( "Content-Disposition"
+                , "attachment; filename=\""
+                    <> TE.encodeUtf8 htmlName
+                    <> "\""
+                )
+            ]
+            body
+
 exportMarkdownApp :: App -> Application
 exportMarkdownApp app _req resp = do
     nb <- readNotebook (appNotebook app)
-    let md = reassemble (map cellToSegment (nbCells nb))
+    let md = reassemble (cellsToSegments (nbCells nb))
         title = nbTitle nb
         filename = T.takeWhileEnd (/= '/') (T.dropWhileEnd (== '/') title)
         mdName =
@@ -380,8 +475,11 @@ server app rn =
     )
         :<|> Tagged (sseApp app)
         :<|> Tagged (exportDashboardApp app)
+        :<|> Tagged (exportSlideshowApp app)
         :<|> Tagged (exportMarkdownApp app)
         :<|> Tagged dashboardApp
+        :<|> Tagged slideshowApp
+        :<|> Tagged (assetApp app)
         :<|> Tagged staticApp
 
 sseHeaders :: [(HeaderName, BS.ByteString)]
@@ -421,7 +519,10 @@ loadNotebookH :: App -> ReactiveNotebook -> LoadRequest -> Handler Notebook
 loadNotebookH app _rn (LoadRequest path) = liftIO $ do
     let absPath = resolveWorkPath (appEnv app) path
     raw <- TIO.readFile absPath
-    cells <- mapM (segmentToCell (appNotebook app)) (parseMarkdown raw)
+    cells <-
+        mapM
+            (segmentToCell (appNotebook app))
+            (splitProseSegments (parseMarkdown raw))
     let nb = Notebook (T.pack path) cells
     -- Cancel any in-flight execution and reclaim GHCi memory via :reload
     void $ bumpGeneration app
@@ -485,7 +586,7 @@ saveNotebookH app (SaveRequest mPath) = liftIO $ do
     nb <- readNotebook (appNotebook app)
     let path = fromMaybe (T.unpack (nbTitle nb)) mPath
         absPath = resolveWorkPath (appEnv app) path
-        md = reassemble (map cellToSegment (nbCells nb))
+        md = reassemble (cellsToSegments (nbCells nb))
     createDirectoryIfMissing True (takeDirectory absPath)
     TIO.writeFile absPath md
     let nb' = nb{nbTitle = T.pack path}
@@ -497,6 +598,48 @@ cellToSegment :: Cell -> Segment
 cellToSegment c = case cellType c of
     ProseCell -> Prose (cellSource c)
     CodeCell -> codeToSegment c
+
+{- | Markdown has no delimiter between adjacent prose blocks, so two
+consecutive prose cells would otherwise merge on reload. We separate them
+with an invisible HTML-comment marker (consistent with the existing
+@\<!-- sabela:mime ... --\>@ convention). The marker never appears in any
+cell's source — it is added on save and stripped on load.
+-}
+proseMarker :: Text
+proseMarker = "<!-- sabela:cell -->"
+
+proseSep :: Text
+proseSep = "\n\n" <> proseMarker <> "\n\n"
+
+{- | Collapse each maximal run of consecutive prose cells into a single
+'Prose' segment, joining the sources with 'proseSep'. Non-prose cells are
+mapped exactly as before. Inverse of 'splitProseSegments'.
+-}
+cellsToSegments :: [Cell] -> [Segment]
+cellsToSegments [] = []
+cellsToSegments (c : cs)
+    | cellType c == ProseCell =
+        let (run, rest) = span ((== ProseCell) . cellType) (c : cs)
+         in Prose (T.intercalate proseSep (map cellSource run))
+                : cellsToSegments rest
+    | otherwise = cellToSegment c : cellsToSegments cs
+
+{- | Invert 'cellsToSegments' on load: split any 'Prose' segment that
+contains boundary-marker lines back into one segment per cell. Segments
+with no marker (legacy files, code blocks) pass through unchanged.
+-}
+splitProseSegments :: [Segment] -> [Segment]
+splitProseSegments = concatMap expand
+  where
+    expand (Prose t)
+        | any isMarker (T.lines t) =
+            map (Prose . T.strip . T.unlines) (chunk (T.lines t))
+        | otherwise = [Prose t]
+    expand other = [other]
+    isMarker l = T.strip l == proseMarker
+    chunk ls = case break isMarker ls of
+        (grp, []) -> [grp]
+        (grp, _ : rest) -> grp : chunk rest
 
 codeToSegment :: Cell -> Segment
 codeToSegment c =

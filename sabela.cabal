@@ -11,7 +11,7 @@ maintainer:         mschavinda@gmail.com
 category:           Development
 build-type:         Simple
 extra-doc-files:    CHANGELOG.md, README.md
-extra-source-files: static/index.html, static/dashboard.html, data/api-reference.txt
+extra-source-files: static/index.html, static/dashboard.html, static/slideshow.html, data/api-reference.txt
 
 common warnings
     ghc-options: -Wall
@@ -107,6 +107,7 @@ test-suite sabela-test
                       Test.ParseSpec,
                       Test.OutputSpec,
                       Test.PreinstalledSpec,
+                      Test.ProseRoundTripSpec,
                       Test.GenerationSpec,
                       Test.AiDocSpec,
                       Test.AiHandlesSpec,
