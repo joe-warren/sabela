@@ -371,6 +371,25 @@
   .cell.prose .prose-rendered p { margin: 0.4em 0; }
   .cell.prose .prose-rendered code { font-family: var(--font-mono); font-size: 0.88em; background: var(--bg-cell); padding: 2px 6px; border-radius: 3px; }
   .cell.prose .prose-rendered a { color: var(--accent); }
+  /* Lists: the global "* { margin:0; padding:0 }" reset strips list
+     indentation and clips markers; restore it and make nested lists
+     compound. Applies to every markdown-rendering surface. */
+  .cell.prose .prose-rendered ul, .cell.prose .prose-rendered ol,
+  .cell-output.mime-markdown ul, .cell-output.mime-markdown ol,
+  .chat-msg ul, .chat-msg ol { margin: 0.4em 0; padding-left: 1.6em; }
+  .cell.prose .prose-rendered li,
+  .cell-output.mime-markdown li, .chat-msg li { margin: 0.15em 0; }
+  .cell.prose .prose-rendered li > ul, .cell.prose .prose-rendered li > ol,
+  .cell-output.mime-markdown li > ul, .cell-output.mime-markdown li > ol,
+  .chat-msg li > ul, .chat-msg li > ol { margin: 0.15em 0 0.3em; }
+  .cell.prose .prose-rendered ul, .cell-output.mime-markdown ul,
+  .chat-msg ul { list-style: disc; }
+  .cell.prose .prose-rendered ul ul, .cell-output.mime-markdown ul ul,
+  .chat-msg ul ul { list-style: circle; }
+  .cell.prose .prose-rendered ul ul ul, .cell-output.mime-markdown ul ul ul,
+  .chat-msg ul ul ul { list-style: square; }
+  .cell.prose .prose-rendered ol, .cell-output.mime-markdown ol,
+  .chat-msg ol { list-style: decimal; }
   .cell.prose .prose-edit {
     display: none; width: 100%; min-height: 60px;
     font-family: var(--font-mono); font-size: 13px;

@@ -307,8 +307,22 @@
   .prose h2 { font-size: 32px; font-weight: 600; color: var(--fg-heading); margin-bottom: 14px; line-height: 1.25; }
   .prose h3 { font-size: 24px; font-weight: 600; color: var(--fg-heading); margin-bottom: 10px; }
   .prose p { font-size: 19px; margin-bottom: 16px; }
-  .prose ul, .prose ol { font-size: 19px; margin: 0 0 16px 28px; }
-  .prose li { margin-bottom: 6px; }
+  .prose ul, .prose ol { font-size: 19px; }
+  /* padding-left (not margin-left) so nested lists compound and markers
+     have room after the global "* { padding:0 }" reset. */
+  .prose ul, .prose ol,
+  .slide-output .mime-markdown ul, .slide-output .mime-markdown ol {
+    margin: 0 0 16px; padding-left: 1.5em;
+  }
+  .prose li, .slide-output .mime-markdown li { margin-bottom: 6px; }
+  .prose li > ul, .prose li > ol,
+  .slide-output .mime-markdown li > ul,
+  .slide-output .mime-markdown li > ol { margin: 4px 0 6px; }
+  .prose ul, .slide-output .mime-markdown ul { list-style: disc; }
+  .prose ul ul, .slide-output .mime-markdown ul ul { list-style: circle; }
+  .prose ul ul ul,
+  .slide-output .mime-markdown ul ul ul { list-style: square; }
+  .prose ol, .slide-output .mime-markdown ol { list-style: decimal; }
   .prose a { color: var(--accent); }
   .prose code {
     font-family: var(--font-mono); font-size: 0.88em;

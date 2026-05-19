@@ -273,9 +273,10 @@ slideshowApp _req resp =
             [(hContentType, "text/html; charset=utf-8")]
             (LBS.fromStrict slideshowHtml)
 
--- | Serve a raw file (images, etc.) from the work directory, addressed by
--- the @?path=@ query param relative to the work-dir root. The path is
--- canonicalized and confined to the work directory.
+{- | Serve a raw file (images, etc.) from the work directory, addressed by
+the @?path=@ query param relative to the work-dir root. The path is
+canonicalized and confined to the work directory.
+-}
 assetApp :: App -> Application
 assetApp app req resp = do
     let workDir = envWorkDir (appEnv app)
