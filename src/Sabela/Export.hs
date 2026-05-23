@@ -60,6 +60,8 @@ import ScriptHs.Render (
     renderCabalScriptHeader,
     renderLiterate,
  )
+import Control.Monad ((>=>))
+import Data.Char (isAsciiLower, isAsciiUpper, isDigit)
 
 -- ---------------------------------------------------------------------------
 -- Public API
@@ -400,7 +402,7 @@ argAt args i = if i >= 0 && i < length args then Just (args !! i) else Nothing
 
 -- | The i-th argument, interpreted as a string literal, with quotes stripped.
 argName :: [Text] -> Int -> Maybe Text
-argName args i = argAt args i >>= (T.stripPrefix "\"" Control.Monad.>=> T.stripSuffix "\"")
+argName args i = argAt args i >>= (T.stripPrefix "\"" >=> T.stripSuffix "\"")
 
 -- | Extract the type from a @( v :: T )@ annotation, if any.
 typeAnnOf :: Maybe Text -> Maybe Text
