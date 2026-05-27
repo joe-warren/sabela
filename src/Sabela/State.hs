@@ -172,9 +172,11 @@ persistConfig app key model = do
     createDirectoryIfMissing True configDir
     BS.writeFile configFile (BS.toStrict json)
 
-newApp :: FilePath -> Set Text -> Maybe Manager -> Maybe Text -> IO App
-newApp workDir globalDeps mHttpMgr mAiToken = do
+newApp ::
+    FilePath -> Set Text -> Maybe Manager -> Maybe Text -> [FilePath] -> IO App
+newApp workDir globalDeps mHttpMgr mAiToken localPkgs = do
     absWork <- canonicalizePath workDir
+    localAbs <- mapM canonicalizePath localPkgs
     tmpBase <- getCanonicalTemporaryDirectory
     tmpDir <- createTempDirectory tmpBase "sabela-server"
     debug <- isJust <$> lookupEnv "SABELA_DEBUG"
@@ -187,6 +189,7 @@ newApp workDir globalDeps mHttpMgr mAiToken = do
                 { envWorkDir = absWork
                 , envTmpDir = tmpDir
                 , envGlobalDeps = globalDeps
+                , envLocalPackages = localAbs
                 , envDebugLog = debug
                 , envAnthropicKey = T.pack <$> mApiKey
                 , envAnthropicModel = T.pack apiModel

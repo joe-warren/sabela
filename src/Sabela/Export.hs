@@ -36,6 +36,8 @@ import qualified Data.Set as S
 import Data.Text (Text)
 import qualified Data.Text as T
 
+import Control.Monad ((>=>))
+import Data.Char (isAsciiLower, isAsciiUpper, isDigit)
 import Sabela.Deps (collectMetadata, mergedMeta)
 import Sabela.Export.Analyze (
     backwardSlice,
@@ -60,8 +62,6 @@ import ScriptHs.Render (
     renderCabalScriptHeader,
     renderLiterate,
  )
-import Control.Monad ((>=>))
-import Data.Char (isAsciiLower, isAsciiUpper, isDigit)
 
 -- ---------------------------------------------------------------------------
 -- Public API

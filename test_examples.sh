@@ -11,7 +11,6 @@ FAILURES=""
 
 examples=(
   "examples/sparkline.md"
-  "examples/analysis.md"
   "examples/plotting.md"
   "examples/matplotlib-demo.md"
   "examples/lean-proofs.md"

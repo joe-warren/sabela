@@ -92,7 +92,7 @@ import Sabela.State.WidgetStore (getWidgetValues)
 import qualified Sabela.Topo as Topo
 import ScriptHs.Parser (CabalMeta (..), ScriptFile (..), parseScript)
 import ScriptHs.Render (toGhciScript)
-import ScriptHs.Run (renderCabalFile)
+import ScriptHs.Run (renderCabalFile, renderCabalProject)
 import System.Directory (createDirectoryIfMissing, doesFileExist)
 import System.FilePath ((</>))
 
@@ -339,7 +339,10 @@ installDepsAndStartSession app _gen metas = do
     broadcastDepsStatus app metas
     setHaskellExts (appDeps app) (S.fromList (metaExts metas))
     let projDir = envTmpDir (appEnv app) </> "repl-project"
-    setupReplProject projDir (mergedMeta (envGlobalDeps (appEnv app)) metas)
+    setupReplProject
+        (envLocalPackages (appEnv app))
+        projDir
+        (mergedMeta (envGlobalDeps (appEnv app)) metas)
     broadcast app (EvSessionStatus SStarting)
     killSession app
     startSessionWith app projDir
@@ -356,10 +359,14 @@ broadcastDepsStatus app metas = do
                 if S.null newDeps then SDepsUpToDate else SUpdateDeps (S.toList newDeps)
         setHaskellDeps (appDeps app) notebookDeps
 
-setupReplProject :: FilePath -> CabalMeta -> IO ()
-setupReplProject dir meta = do
+setupReplProject :: [FilePath] -> FilePath -> CabalMeta -> IO ()
+setupReplProject localPkgs dir meta = do
     createDirectoryIfMissing True dir
-    ensureFile (dir </> "cabal.project") "packages: .\n"
+    -- Regenerate every run (the repl-project temp dir is per-server) so changes
+    -- to local packages / git pins take effect.
+    writeFile
+        (dir </> "cabal.project")
+        (T.unpack (renderCabalProject localPkgs (metaSourceRepos meta)))
     ensureFile (dir </> "Main.hs") "main :: IO ()\nmain = pure ()\n"
     writeFile (dir </> "sabela-repl.cabal") (renderCabalFile "sabela-repl" meta)
 
@@ -373,6 +380,11 @@ startSessionWith app projDir = do
     debugLog app "[handler] Injecting display prelude"
     let cfg = SessionConfig{scProjectDir = projDir, scWorkDir = envWorkDir (appEnv app)}
         onLine t = unless (T.null t) $ broadcast app (EvInstallLog t)
+        locals = envLocalPackages (appEnv app)
+    unless (null locals) $
+        broadcast
+            app
+            (EvInstallLog (T.pack ("Local package overlays: " <> unwords locals)))
     sessResult <-
         try (newSessionStreaming cfg onLine) :: IO (Either SomeException Session)
     case sessResult of

@@ -315,6 +315,10 @@ function applyTheme(theme, { persist = true } = {}) {
   // Re-render iframes with current theme colors
   document.querySelectorAll('iframe[data-last-content]').forEach(f => {
     if (!f.dataset.lastContent) return;
+    if (f.dataset.staticFrame) {
+      f.srcdoc = staticSrcdoc(f.dataset.lastContent, f.dataset.iframeKind || 'content', f.id);
+      return;
+    }
     try {
       const doc = f.contentDocument || f.contentWindow?.document;
       if (!doc) return;
@@ -346,6 +350,39 @@ function widgetIframeStyle() {
   const accent = isDark ? '#89b4fa' : '#0066ff';
   return `<style>body{background:transparent;color:${fg};font-family:'JetBrains Mono',ui-monospace,monospace;font-size:14px;margin:0;padding:6px 12px;line-height:1.2;font-variant-ligatures:none;font-feature-settings:"calt" 0,"liga" 0}input,select{font-family:inherit;font-size:14px;accent-color:${accent};vertical-align:middle}button{font-family:inherit;font-size:14px;cursor:pointer;accent-color:${accent};vertical-align:middle}label{font-weight:600;font-size:13px;color:${fgDim};display:inline-block;margin-right:8px;vertical-align:middle}</style>`;
 }
+// ── Static-export iframe: opaque-origin sandbox + in-document CSP ──
+// In a shared/offline export we still run a script-drawn widget so its plot
+// renders, but sandbox='allow-scripts' (NO allow-same-origin) gives the frame an
+// opaque origin that cannot read this page (the embedded notebook JSON), cookies,
+// or storage, and the meta-CSP blocks all network egress. Because the frame is
+// cross-origin we cannot read its height, so it reports its own via postMessage.
+const STATIC_CSP = "<meta http-equiv=\"Content-Security-Policy\" content=\"default-src 'none'; script-src 'unsafe-inline'; style-src 'unsafe-inline'; img-src data:; base-uri 'none'; form-action 'none'; frame-src 'none'\">";
+let __staticFrameSeq = 0;
+function staticSrcdoc(content, kind, id) {
+  const style = kind === 'widget' ? widgetIframeStyle() : iframeContentStyle();
+  const reporter = "<scr" + "ipt>(function(){function r(){try{parent.postMessage({__sabelaH:document.documentElement.scrollHeight,__sabelaId:'" + id + "'},'*')}catch(e){}}requestAnimationFrame(function(){r();setTimeout(r,60)})})();</scr" + "ipt>";
+  return STATIC_CSP + style + content + reporter;
+}
+function mountStaticFrame(container, content, kind) {
+  const id = 'sframe' + (__staticFrameSeq++);
+  const iframe = document.createElement('iframe');
+  iframe.id = id;
+  iframe.setAttribute('sandbox', 'allow-scripts');
+  if (kind === 'widget') iframe.style.pointerEvents = 'none';
+  iframe.style.height = (kind === 'widget' ? 60 : 80) + 'px';
+  iframe.dataset.iframeKind = kind;
+  iframe.dataset.lastContent = content;
+  iframe.dataset.staticFrame = '1';
+  iframe.srcdoc = staticSrcdoc(content, kind, id);
+  container.appendChild(iframe);
+}
+window.addEventListener('message', (e) => {
+  const d = e.data;
+  if (d && typeof d.__sabelaH === 'number' && d.__sabelaId) {
+    const el = document.getElementById(d.__sabelaId);
+    if (el && el.dataset.staticFrame) el.style.height = Math.max(32, d.__sabelaH) + 'px';
+  }
+});
 // Live-follow OS theme until the user pins a choice
 if (window.matchMedia) {
   window.matchMedia('(prefers-color-scheme: light)').addEventListener('change', (e) => {
@@ -455,6 +492,7 @@ function mergeHtmlOutputs(outputs) {
 // ── Render a content output ──────────────────────────────────────
 function renderOutput(container, content, mime) {
   if (mime === 'text/html') {
+    if (isStatic) { mountStaticFrame(container, content, 'content'); return; }
     const iframe = document.createElement('iframe');
     iframe.setAttribute('sandbox', 'allow-scripts allow-same-origin');
     iframe.style.visibility = 'hidden';
@@ -516,6 +554,14 @@ function renderOutput(container, content, mime) {
 // ── Render widget inline ─────────────────────────────────────────
 function renderWidgetOutput(container, output, cellId) {
   if (isStatic) {
+    // Script-drawn widgets (e.g. the scatter <canvas>) need their script to run to
+    // render at all — do it in the opaque-origin, network-dead sandbox (see
+    // mountStaticFrame), inert via pointer-events:none. Form controls have no such
+    // need and stay as greyed-out, script-stripped placeholders.
+    if (/<canvas|<script/i.test(output.oiOutput)) {
+      mountStaticFrame(container, output.oiOutput, 'widget');
+      return;
+    }
     const wrapper = document.createElement('div');
     wrapper.className = 'static-widget';
     let cleaned = output.oiOutput

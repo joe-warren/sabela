@@ -543,6 +543,39 @@ function applyTheme(theme, { persist = true } = {}) {
 function toggleTheme() {
   applyTheme(currentTheme() === 'light' ? 'dark' : 'light');
 }
+// ── Static-export iframe: opaque-origin sandbox + in-document CSP ──
+// In a shared/offline export we still run a script-drawn widget so its plot
+// renders, but sandbox='allow-scripts' (NO allow-same-origin) gives the frame an
+// opaque origin that cannot read this page (the embedded notebook JSON), cookies,
+// or storage, and the meta-CSP blocks all network egress. Because the frame is
+// cross-origin we cannot read its height, so it reports its own via postMessage.
+const STATIC_CSP = "<meta http-equiv=\"Content-Security-Policy\" content=\"default-src 'none'; script-src 'unsafe-inline'; style-src 'unsafe-inline'; img-src data:; base-uri 'none'; form-action 'none'; frame-src 'none'\">";
+let __staticFrameSeq = 0;
+function staticSrcdoc(content, kind, id) {
+  const style = kind === 'widget' ? widgetIframeStyle() : iframeContentStyle();
+  const reporter = "<scr" + "ipt>(function(){function r(){try{parent.postMessage({__sabelaH:document.documentElement.scrollHeight,__sabelaId:'" + id + "'},'*')}catch(e){}}requestAnimationFrame(function(){r();setTimeout(r,60)})})();</scr" + "ipt>";
+  return STATIC_CSP + style + content + reporter;
+}
+function mountStaticFrame(container, content, kind) {
+  const id = 'sframe' + (__staticFrameSeq++);
+  const iframe = document.createElement('iframe');
+  iframe.id = id;
+  iframe.setAttribute('sandbox', 'allow-scripts');
+  if (kind === 'widget') iframe.style.pointerEvents = 'none';
+  iframe.style.height = (kind === 'widget' ? 60 : 80) + 'px';
+  iframe.dataset.iframeKind = kind;
+  iframe.dataset.lastContent = content;
+  iframe.dataset.staticFrame = '1';
+  iframe.srcdoc = staticSrcdoc(content, kind, id);
+  container.appendChild(iframe);
+}
+window.addEventListener('message', (e) => {
+  const d = e.data;
+  if (d && typeof d.__sabelaH === 'number' && d.__sabelaId) {
+    const el = document.getElementById(d.__sabelaId);
+    if (el && el.dataset.staticFrame) el.style.height = Math.max(32, d.__sabelaH) + 'px';
+  }
+});
 function iframeContentStyle() {
   const isDark = currentTheme() === 'dark';
   const bg = isDark ? '#1e1e2e' : '#ffffff';
@@ -877,6 +910,7 @@ function mergeHtmlOutputs(outputs) {
 // ── Render a content output ──────────────────────────────────────
 function renderOutput(container, content, mime) {
   if (mime === 'text/html') {
+    if (isStatic) { mountStaticFrame(container, content, 'content'); return; }
     const iframe = document.createElement('iframe');
     iframe.setAttribute('sandbox', 'allow-scripts allow-same-origin');
     iframe.style.visibility = 'hidden';
@@ -933,6 +967,14 @@ function renderOutput(container, content, mime) {
 
 function renderWidgetOutput(container, output) {
   if (isStatic) {
+    // Script-drawn widgets (e.g. the scatter <canvas>) need their script to run to
+    // render at all — do it in the opaque-origin, network-dead sandbox (see
+    // mountStaticFrame), inert via pointer-events:none. Form controls have no such
+    // need and stay as greyed-out, script-stripped placeholders.
+    if (/<canvas|<script/i.test(output.oiOutput)) {
+      mountStaticFrame(container, output.oiOutput, 'widget');
+      return;
+    }
     const wrapper = document.createElement('div');
     wrapper.className = 'static-widget';
     let cleaned = output.oiOutput
@@ -966,6 +1008,10 @@ function rerenderVisibleIframes() {
   const slide = slideEls[current];
   if (!slide) return;
   slide.querySelectorAll('iframe[data-last-content]').forEach(f => {
+    if (f.dataset.staticFrame) {
+      f.srcdoc = staticSrcdoc(f.dataset.lastContent, f.dataset.iframeKind || 'content', f.id);
+      return;
+    }
     try {
       const doc = f.contentDocument || f.contentWindow?.document;
       if (!doc) return;

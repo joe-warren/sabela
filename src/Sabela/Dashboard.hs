@@ -17,9 +17,10 @@ import Sabela.Model (Notebook)
 into the dashboard template. The template contains a placeholder
 @/*__SABELA_INJECT__*\/@ which is replaced with a JSON assignment.
 
-The JSON is embedded as a base64-encoded string to avoid any issues
-with @\<\/script\>@ sequences in the notebook content breaking the
-enclosing script tag.
+Every @\</@ in the JSON is rewritten to @\<\\/@ so that a @\</script\>@ in
+notebook content (in any case, or followed by whitespace) cannot prematurely
+close the enclosing @\<script\>@ tag. The @\\/@ is an ordinary @/@ once the JS
+string is parsed, so the embedded data round-trips unchanged.
 -}
 renderStaticDashboard :: BS.ByteString -> Notebook -> LBS.ByteString
 renderStaticDashboard template nb =
@@ -29,13 +30,12 @@ renderStaticDashboard template nb =
     tmpl = TE.decodeUtf8 template
     placeholder :: Text
     placeholder = "/*__SABELA_INJECT__*/"
-    -- Escape </script> sequences that would prematurely close the tag.
+    -- Escape every "</" so that no "</script>" (in any case, or with trailing
+    -- whitespace) inside notebook content can close the enclosing <script>.
+    -- "<\/" is an ordinary "</" once the JS string is parsed, so data is unchanged.
     safeJson :: Text
     safeJson =
-        T.replace "</script>" "<\\/script>"
-            . T.replace "</Script>" "<\\/Script>"
-            . T.replace "</SCRIPT>" "<\\/SCRIPT>"
-            $ TE.decodeUtf8 (LBS.toStrict (encode nb))
+        T.replace "</" "<\\/" (TE.decodeUtf8 (LBS.toStrict (encode nb)))
     injection :: Text
     injection =
         "window.__SABELA_STATIC__ = " <> safeJson <> ";"

@@ -1,6 +1,17 @@
 # sabela
 
-Sabela is a reactive notebook environment for Haskell. The name is derived from the [Ndebele](https://en.wikipedia.org/wiki/Northern_Ndebele_language) word meaning "to respond." The project has two purposes. Firstly, it is an attempt to design and create a modern Haskell notebook where reactivity is a first class concern. Secondly, it is an experiment ground for package/environment management in Haskell notebooks (a significant pain point in IHaskell).
+Sabela is a reactive notebook for Haskell. Change a cell and everything
+downstream reruns on its own, so you never run the whole notebook by hand or
+wonder whether an output is still current. The name is the
+[Ndebele](https://en.wikipedia.org/wiki/Northern_Ndebele_language) word for
+*to respond*, which is the behaviour it is built around.
+
+It began as two experiments: a Haskell notebook where reactivity is a
+first-class concern, and a sane story for package and environment management,
+the part that makes IHaskell hurt. It has since grown into somewhere you can
+drag a slider and watch a chart redraw, lasso points on a scatter plot to filter
+a `DataFrame`, drop into Python halfway through, and hand the keyboard to Claude
+Code to edit cells beside you.
 
 ![A screenshot of the web ui](./static/images/screenshot.png)
 
@@ -13,31 +24,34 @@ cabal update
 cabal run
 ```
 
-Open `localhost:3000/index.html` and explore either:
+Open `localhost:3000/index.html`, then either:
 
-* `./examples/analysis.md` for a quick tutorial.
-* or click on the book icon on the top left for some ready to use snippets.
+* open `examples/CaliforniaHousing.md` for a full worked example, taking
+  California housing data through to a Hasktorch linear-regression model, or
+* click the book icon, top left, for ready-to-run snippets.
 
-The execution and dependency management model is based on [scripths](https://github.com/DataHaskell/scripths).
+The execution and dependency model is based on
+[scripths](https://github.com/DataHaskell/scripths).
 
-## Tutorial
+## What you can do
 
-## What Sabela is good at
+* **Edit one cell, watch the rest catch up.** Sabela reruns the cells that
+  depend on what you changed, and nothing else.
+* **Add interactive controls without writing JavaScript.** A `slider`,
+  `dropdown`, or `button` is one line of Haskell; drag it and the cell reruns
+  with the new value.
+* **Mix Haskell and Python in one notebook.** Load and type-check data in
+  Haskell, hand it to pandas or matplotlib, pass the results back.
+* **Pair with Claude Code.** Point the `siza` skill at your running notebook and
+  Claude can read, run, and edit cells while you watch them change in the browser.
+* **Present it.** Turn a notebook into a live dashboard or slideshow, or export
+  it to standalone HTML, Markdown, or a runnable `.hs`.
 
-Sabela is aimed at exploratory Haskell work where you want:
-
-* regular Haskell code, not a special notebook language
-* reactive reruns when upstream cells change
-* package directives via `-- cabal:` metadata
-* Markdown prose mixed with executable Haskell
-* rich output in the browser
-* a file explorer and save/load workflow for `.md` notebooks
+# Tutorial
 
 ---
 
 ## 1. Install and run
-
-Clone the repo and start the server:
 
 ```bash
 git clone https://github.com/DataHaskell/sabela
@@ -46,36 +60,32 @@ cabal update
 cabal run
 ```
 
-Then open:
+Then open `http://localhost:3000/index.html`. By default the file explorer is
+rooted at the current directory.
+
+To pass options, the argument order is:
 
 ```text
-http://localhost:3000/index.html
+sabela [port] [work-dir] [global-file] [packages...]
 ```
 
-By default, Sabela serves the UI from `static/` and uses the current working directory as the file explorer root.
-
-You can also pass explicit arguments:
+So to run on a different port with a notebook directory of your own:
 
 ```bash
-cabal run sabela -- 3000 static .
+cabal run sabela -- 8080 ~/notebooks
 ```
 
-The CLI shape is:
-
-```text
-sabela [port] [static-dir] [work-dir]
-```
+`global-file` defaults to `~/.sabela/global.md` (see [section 6](#6-adding-package-dependencies-inside-a-cell)); any
+trailing arguments are extra packages to preinstall.
 
 ---
 
 ## 2. The notebook model
 
-A Sabela notebook is just a Markdown file containing prose plus fenced Haskell code blocks.
-
-For example:
+A notebook is an ordinary Markdown file: prose plus fenced Haskell blocks.
 
 ````markdown
-# My first Sabela notebook
+# My first notebook
 
 This is prose.
 
@@ -90,26 +100,18 @@ print (x + 5)
 ```
 ````
 
-When Sabela loads a notebook:
-
-* prose sections become **prose cells**
-* fenced code blocks become **code cells**
-* running the notebook executes the code cells in order
-
-When you save, Sabela writes the current notebook state back out as Markdown again.
-
-That means notebooks stay readable in Git, easy to diff, and editable outside the website.
+Fenced code blocks load as code cells, and the text between them loads as prose
+cells. Saving writes the notebook back out as Markdown, so it diffs cleanly in
+Git and edits fine outside the browser.
 
 ---
 
 ## 3. Your first reactive notebook
 
-Create a file called `examples/tutorial.md`:
+Make a file `examples/tutorial.md`:
 
 ````markdown
 # Sabela basics
-
-This notebook shows the core reactive workflow.
 
 ```haskell
 x = 10
@@ -124,65 +126,45 @@ print (x + y)
 ```
 ````
 
-Now change the first cell from:
+The last cell prints `30`. Now change the first cell to `x = 100`. You don't
+rerun anything by hand. Sabela notices that the third cell uses `x` and reruns
+it, so the output updates to `120`.
 
-```haskell
-x = 10
-```
-
-to:
-
-```haskell
-x = 100
-```
-
-Sabela tracks definitions and uses heuristically, so when an upstream cell changes, downstream cells that depend on those names are rerun automatically.
-
-In this example, the final cell should update from `30` to `120`.
-
-This is the central Sabela workflow:
+That's the loop you'll work in:
 
 1. define values in small cells
-2. compose later cells from earlier ones
-3. edit upstream definitions
-4. let the notebook rerun affected dependents
+2. build later cells from earlier ones
+3. edit a definition upstream
+4. let the affected cells rerun themselves
 
 ---
 
-## 4. How reactivity works today
+## 4. How reactivity works
 
-Sabela does **not** currently build a full Haskell dependency graph. Instead, it uses a lightweight textual approximation:
+Sabela doesn't build a real Haskell dependency graph. It works the dependencies
+out textually: it scans each cell for the names it defines and the names it
+uses, and when you edit a cell it reruns the later cells that use a name the
+edited cell defines.
 
-* it scans each code cell for names it appears to define
-* it scans for names it appears to use
-* when a cell is edited, later code cells are rerun if they use names defined by changed cells
+That's fast and predictable, but it has limits to keep in mind:
 
-This approach is simple and fast, and it works well for many didactic and exploratory notebooks.
+* it reads top to bottom, so order matters
+* it's a heuristic, not the compiler's view
+* unusual syntax may not be tracked
+* circular dependencies aren't modelled
 
-You should still understand its limits:
-
-* it is order-sensitive
-* it is heuristic, not compiler-accurate
-* unusual syntax may not be tracked perfectly
-* circular dependencies are not deeply modeled yet
-
-So the best style for Sabela notebooks is:
-
-* keep cells small
-* define values and helper functions clearly
-* prefer a top-to-bottom narrative order
+In practice the fix for all of these is the same: keep cells small, name your
+definitions clearly, and let the notebook read top to bottom.
 
 ---
 
 ## 5. Running plain Haskell
 
-Anything that works in GHCi generally fits naturally in a Sabela code cell.
-
-Example:
+Anything that runs in GHCi runs in a cell:
 
 ```haskell
 let triples =
-      [ (a,b,c)
+      [ (a, b, c)
       | c <- [1..20]
       , b <- [1..c]
       , a <- [1..b]
@@ -192,17 +174,15 @@ let triples =
 print triples
 ```
 
-Sabela ships with a small gallery of built-in examples in the UI, including basics, library usage, display examples, concurrency, QuickCheck, and file I/O.
+The book icon in the top left opens a gallery of ready-to-run snippets: basics,
+library usage, rich display, concurrency, QuickCheck, and file I/O.
 
 ---
 
 ## 6. Adding package dependencies inside a cell
 
-One of Sabela’s most important ideas is that notebook package requirements live inside the notebook itself.
-
-You do this with `-- cabal:` metadata at the top of a code cell.
-
-Example:
+A notebook carries its own package requirements. You declare them with
+`-- cabal:` directives at the top of a cell:
 
 ```haskell
 -- cabal: build-depends: text
@@ -213,54 +193,45 @@ let msg = T.pack "Hello, Sabela!"
 TIO.putStrLn (T.toUpper msg)
 ```
 
-You can also declare extensions:
+Extensions go the same way:
 
 ```haskell
 -- cabal: build-depends: aeson, text, bytestring
 -- cabal: default-extensions: DeriveGeneric, OverloadedStrings
 ```
 
-If you want cross notebook dependencies put them in a file called `global.md`
-and define them as above.
+The directives are per cell, but they apply to the whole notebook: Sabela merges
+the `-- cabal:` lines from every cell into one package set. When that set
+changes it resolves the package environment, restarts GHCi, reinjects the
+display helpers, and reruns the cells that need it. Putting your main directives
+near the top keeps the environment easy to read.
 
-### What happens under the hood
+For dependencies you want in every notebook, put the same directives in a
+`global.md` (by default `~/.sabela/global.md`).
 
-Sabela scans **all code cells**, merges their `-- cabal:` metadata, and computes the full required package/extension set for the notebook.
-
-If the dependency set changes, Sabela:
-
-1. resolves or updates the package environment
-2. restarts the GHCi session
-3. injects its display helper prelude
-4. reruns the relevant cells
-
-That means dependencies are notebook-level in effect, even though the directives are written in cells.
-
-A practical tip: put your main dependency directives near the top of the notebook so the environment story is easy to read.
-
-Note: Sabela curently only supports exact versions - not the cabal package range syntax.
-
-That is: `dataframe-0.5.0.0` will work but `dataframe <= 1` won't.
+Versions must be exact: `dataframe-0.5.0.0` works, but ranges like
+`dataframe <= 1` don't.
 
 ---
 
 ## 7. Rich output helpers
 
-Sabela injects helper functions into the GHCi session so cells can emit structured browser output.
+Sabela injects display helpers into the session so a cell can emit structured
+output instead of plain text:
 
-The key helpers are:
+| Helper | Output |
+|--------|--------|
+| `displayHtml` | HTML |
+| `displayMarkdown` | Markdown |
+| `displaySvg` | SVG |
+| `displayLatex` | LaTeX |
+| `displayJson` | JSON |
+| `displayImage` | base64 image (takes a MIME type and the data) |
 
-* `displayHtml`
-* `displayMarkdown`
-* `displaySvg`
-* `displayLatex`
-* `displayJson`
-* `displayImage`
+A plain `print` shows up as text. Rich output has to be the only thing the cell
+prints.
 
-If you just `print` something, it is treated as plain text.
-Note: rich output text must be the only thing output in the cell.
-
-### Markdown output
+### Markdown
 
 ```haskell
 displayMarkdown $ unlines
@@ -270,12 +241,12 @@ displayMarkdown $ unlines
   , ""
   , "| Metric | Value |"
   , "|--------|-------|"
-  , "| Speed | Fast |"
-  , "| Memory | Low |"
+  , "| Speed  | Fast  |"
+  , "| Memory | Low   |"
   ]
 ```
 
-### HTML output
+### HTML
 
 ```haskell
 displayHtml $ unlines
@@ -285,7 +256,7 @@ displayHtml $ unlines
   ]
 ```
 
-### SVG output
+### SVG
 
 ```haskell
 -- cabal: build-depends: text, granite
@@ -298,18 +269,165 @@ displaySvg $ T.unpack
   (bars [("Q1",12),("Q2",18),("Q3",9),("Q4",15)] defPlot { plotTitle = "Sales" })
 ```
 
-These helpers work by prefixing output with a MIME marker that the server parses before sending results to the browser.
+Each helper prefixes its output with a MIME marker that the server strips before
+sending the result to the browser.
 
 ---
 
-## 8. A minimal didactic notebook
+## 8. Interactive widgets
 
-Here is a complete small notebook you can drop into `examples/minimal.md`.
+A widget is an HTML control (slider, dropdown, checkbox, text box, button) that
+lives in a cell's output and reruns the cell when you touch it. You write no
+JavaScript: Sabela renders the control and carries its value back to GHCi to
+rerun the cell.
+
+Every widget is a `Behavior a`: a value that knows how to render itself and
+sample its current value. The verb `display` does both: it draws the control
+and returns the value:
+
+```haskell
+c <- display (slider "celsius" (20 :: Int) (-40) 120)
+let f = c * 9 `div` 5 + 32
+
+displayHtml $ "<p><b>" ++ show c ++ " °C</b> = " ++ show f ++ " °F</p>"
+```
+
+Drag the slider and the cell reruns with the new `c`. Any cell downstream that
+uses `c` reruns too, because a widget value is an ordinary Haskell binding.
+
+The full set:
+
+| Widget | Returns |
+|--------|---------|
+| `slider name def lo hi` | the number, as you drag (debounced) |
+| `dropdown name options def` | the chosen `String` |
+| `checkbox name def` | a `Bool` |
+| `textInput name def` | the current `String` |
+| `button label name` | `Maybe ()` (`Just ()` once clicked) |
+| `scatterSelect name points` | `[Int]`, the indices of the lassoed points |
+
+`Behavior` is `Applicative`, so you can combine widgets into one value:
+
+```haskell
+area <- display (liftA2 (*) (slider "w" (10 :: Int) 1 100)
+                            (slider "h" (10 :: Int) 1 100))
+displayHtml $ "<p>Area: <b>" ++ show area ++ "</b></p>"
+```
+
+### Lasso a scatter plot
+
+`scatterSelect` draws an HTML5 canvas and returns the indices of the points you
+circle. Hand those to a row filter and a downstream cell shows exactly the rows
+you selected:
+
+```haskell
+sel <- display (scatterSelect "districts" [(lon, lat) | (lon, lat) <- coords])
+
+sel
+```
+
+---
+
+## 9. Python in the same notebook
+
+Pick **py** from the language dropdown in a cell's gutter and that cell runs in a
+persistent Python REPL instead of GHCi. Variables persist down the notebook, and
+the same `displayHtml` / `displayMarkdown` helpers work. (You need `python3` on
+your `PATH`.)
+
+```python
+def fib(n):
+    a, b = 0, 1
+    for _ in range(n):
+        a, b = b, a + b
+    return a
+
+print([fib(i) for i in range(10)])
+```
+
+The two languages run in separate processes, so they pass values through a
+bridge rather than shared memory. Export from Haskell:
+
+```haskell
+exportBridge "names" (show names)
+```
+
+and the value arrives in Python as the string `_bridge_names`:
+
+```python
+import ast
+names = ast.literal_eval(_bridge_names)
+```
+
+It works the other way too: `exportBridge("result", json.dumps(r))` in Python
+surfaces as `_bridge_result` in Haskell, and exporting from Python reruns the
+Haskell cells that read it. The usual move is to load and type-check data with
+`DataFrame` in Haskell, ship it across as CSV, and let pandas or matplotlib take
+over. `examples/tutorial-python-integration.md` and `examples/matplotlib-demo.md`
+walk through it.
+
+---
+
+## 10. Pair-programming with Claude Code (siza)
+
+Sabela exposes its notebook over a small REST API at `/api/ai/*`, and **siza** is
+a Claude Code skill that drives it. With your notebook open in the browser and
+siza installed in a second terminal, Claude can list cells, read them, run them,
+propose edits you approve in the UI, and try code in a throwaway scratchpad.
+Every change shows up live in your browser, against the same GHCi session you're
+already using.
+
+Install it from inside Claude Code:
+
+```text
+/plugin marketplace add /path/to/sabela/cli-skill
+/plugin install siza
+/reload-plugins
+```
+
+Then start Sabela (`cabal run`), open a notebook, and ask Claude things like
+*"what's in my notebook?"*, *"run cell 3 and tell me what it prints"*, or
+*"add a cell that plots median income against house value."* siza finds the
+running server on its own: Sabela writes `~/.local/state/sabela/servers/<port>.json`
+on startup, and the skill reads it.
+
+On a shared or remote machine, gate the bridge with a token:
+
+```bash
+SABELA_AI_TOKEN=$(openssl rand -hex 16) cabal run
+```
+
+Clients then send `Authorization: Bearer <token>`; the rest of the UI stays
+open. Full details are in `cli-skill/README.md`.
+
+---
+
+## 11. Presenting and exporting
+
+A notebook isn't only for editing. Sabela serves the same notebook as a live
+**dashboard** at `/dashboard` and a **slideshow** at `/slideshow`, and it can
+export to a file you can hand off:
+
+| `GET /api/export/…` | Output |
+|------|--------|
+| `markdown` | the notebook as plain `.md` |
+| `dashboard` / `slideshow` | a standalone HTML page with the notebook baked in |
+| `haskell` | a runnable `.hs` cabal script, sliced to a cell's dependencies |
+| `lhs` | literate Haskell |
+| `reactive` | a headless reactive-banana program |
+
+Since the source of truth is Markdown, the simplest export of all is just saving
+the file.
+
+---
+
+## 12. A minimal notebook
+
+Drop this into `examples/minimal.md` for reactivity, Markdown output, and an
+SVG plot in one file:
 
 ````markdown
 # A tiny Sabela notebook
-
-This notebook demonstrates reactivity, Markdown output, and an SVG plot.
 
 ```haskell
 numbers = [1..10]
@@ -327,190 +445,120 @@ print squares
 displayMarkdown $ unlines
   [ "# Summary"
   , ""
-  , "We computed **squares** for the numbers " ++ show (head numbers) ++ " through " ++ show (last numbers) ++ "."
+  , "Squares for " ++ show (head numbers) ++ " through " ++ show (last numbers) ++ "."
   , ""
-  , "- Count: " ++ show (last numbers) 
+  , "- Count: " ++ show (last numbers)
   , "- Max: " ++ show (last squares)
   ]
 ```
 ````
 
-Edit `numbers`, and the downstream cells should update.
+Edit `numbers` and the three cells below it update.
 
 ---
 
-## 9. The DataHaskell example notebook
+## 13. The California housing example
 
-The repository includes a larger example at `examples/analysis.md` based on the California housing dataset.
+`examples/CaliforniaHousing.md` is a full end-to-end notebook on the California
+housing dataset. It walks through:
 
-That notebook shows a very good real Sabela workflow:
+* loading data with `DataFrame`
+* inspecting rows and computing summaries
+* categorical frequencies and histograms
+* engineering derived features
+* typed column references via Template Haskell
+* scatter plots of the spatial structure
+* correlations against the target variable
+* training a Hasktorch linear-regression model
+* evaluating predictions on held-out districts
 
-* load data with `DataFrame`
-* inspect rows
-* compute summaries
-* get categorical frequencies
-* plot histograms
-* create derived features
-* declare typed column references with Template Haskell
-* visualize spatial structure with scatter plots
-* compute correlations against a target variable
-
-## 10. Looking up names from the current session
-
-Sabela also provides IDE-style help for the active notebook session.
-
-The UI exposes a lookup panel, and the backend can query GHCi for:
-
-* completions
-* `:info`
-* `:type`
-* `:doc`
-
-So once your notebook has loaded modules and defined names, you can inspect them from the same live session.
-
-This is especially useful for exploratory work where you are mixing notebook execution with interactive discovery.
+If you'd rather start smaller, `examples/Iris.md` trains a decision tree on the
+classic Iris set, and `examples/grammar-of-graphics.md` builds layered charts
+with Granite's grammar-of-graphics API.
 
 ---
 
-## 11. Files, loading, and saving
+## 14. Looking up names from the session
 
-Sabela includes a file explorer rooted at the configured working directory.
+The lookup panel queries the live session for completions, `:info`, `:type`,
+and `:doc`. Once a notebook has loaded its modules and defined its names, you can
+inspect them from the same session you're running cells in, which is useful when
+you're learning an API as you go.
 
-That gives you a nice workflow for:
+---
 
-* opening existing Markdown notebooks
-* creating new files and directories
-* reading and editing files
-* saving notebooks back to disk
+## 15. Files, loading, and saving
 
-A useful convention is something like:
+Sabela's file explorer is rooted at the working directory, so you can open
+existing notebooks, create files and directories, and save back to disk from the
+UI. Because notebooks are plain Markdown, a layout like:
 
 ```text
 examples/
   basics.md
-  dataframe_intro.md
   plotting.md
-  california_housing.md
+  CaliforniaHousing.md
 ```
 
-Since notebooks are plain Markdown, they work very naturally with Git and code review.
+is just files on disk and works naturally with Git and code review.
 
 ---
 
-## 12. Errors and debugging
+## 16. Errors and debugging
 
-When a cell fails, Sabela captures stderr from GHCi and parses error locations into structured cell errors.
+When a cell fails, Sabela captures GHCi's stderr and parses it into structured
+errors, with line and column information where GHCi provides it. Fixing a broken
+upstream cell repairs its dependents on the next rerun.
 
-In practice, that means:
+A few things that help:
 
-* ordinary compile/runtime messages still appear
-* line/column information is surfaced when available
-* fixing a broken upstream cell can automatically repair downstream cells on rerun
-
-A few debugging tips:
-
-* keep imports and dependency pragmas near the top
-* isolate complicated definitions into their own cells
-* prefer explicit helper names over deeply nested one-liners
-* use `print` for plain debugging and `displayMarkdown` / `displayHtml` for presentation
+* keep imports and `-- cabal:` directives near the top
+* give complicated definitions their own cell
+* prefer named helpers over deeply nested one-liners
+* use `print` for debugging and the `display*` helpers for presentation
 
 ---
 
-## 13. How Sabela executes cells
+## 17. How Sabela executes cells
 
-The execution model is worth understanding because it explains most notebook behavior.
-
-### Session lifecycle
-
-Sabela maintains a single GHCi session for the notebook.
-
-When needed, it starts GHCi roughly with:
-
-* `--interactive`
-* `-ignore-dot-ghci`
-* language extensions from notebook metadata
-* package flags or package environment information derived from notebook metadata
-
-### Cell execution
-
-For a given code cell, Sabela:
+Sabela keeps one long-lived GHCi process per notebook, started with
+`-ignore-dot-ghci` plus the extensions and package environment from the
+notebook's metadata. To run a cell it:
 
 1. parses the source as a script fragment
-2. renders it into GHCi-friendly script text
-3. sends the lines to the running session
-4. places a unique marker after the cell
+2. renders it into GHCi script text
+3. sends those lines to the session
+4. writes a unique marker after them
 5. drains stdout until the marker appears
 6. collects stderr separately
-7. parses MIME markers and error information
+7. parses out MIME markers and error locations
 8. broadcasts the result to the frontend
 
-This marker-based approach is the trick that lets Sabela separate one cell’s output from the next while still using a single long-lived GHCi process.
+The marker is the trick that lets one long-lived process serve a whole notebook
+while keeping each cell's output separate. Python cells work the same way
+against their own REPL.
 
 ---
 
-## 14. Current limitations to know about
+## 18. Current limitations
 
-Sabela is already quite usable, but it is still an early system. A good tutorial should be honest about that.
+Sabela is a young project with some rough edges. The constraints worth knowing
+about:
 
-Current constraints include:
-
-* dependency tracking is heuristic rather than compiler-accurate
-* cell scheduling is currently linear rather than topologically sorted
-* circular dependencies are not deeply handled
-* notebook semantics are tied to a single session model
-* package environment changes require session restart
-
-These are not necessarily flaws; many are reasonable early tradeoffs for a simple and understandable architecture.
+* each language runs in a single session for the notebook
+* changing the package environment restarts that session
+* the Haskell↔Python bridge passes values as strings, not live objects
 
 ---
 
-## 15. A good notebook style for Sabela
+## 19. A good notebook style
 
-If you want notebooks that feel clean and robust, use this style:
+Notebooks read best when you:
 
-### Put setup first
-
-Start with:
-
-* package directives
-* extensions
-* imports
-* small helper functions
-
-### Separate stages
-
-Use one cell per conceptual step:
-
-* data loading
-* inspection
-* cleaning
-* feature engineering
-* plotting
-* modeling
-* interpretation
-
-### Keep cells readable
-
-Prefer:
-
-* named intermediate values
-* small helper functions
-* explicit imports
-* prose between major steps
-* for memory efficiency don't declare expensive things in top level variables.
-
-### Use prose cells seriously
-
-Sabela works best when the notebook is both:
-
-* executable
-* readable as a document
-
-That means prose should explain:
-
-* what you are doing
-* why you are doing it
-* what the output means
-* what the next cell will test
-
----
+* **put setup first**: directives, extensions, imports, and small helpers up top
+* **give each step its own cell**: loading, cleaning, feature engineering,
+  plotting, modelling, interpretation
+* **name intermediate values** instead of nesting everything in one expression
+* **avoid binding expensive values at the top level**, to keep memory down
+* **write the prose as a document**: explain what each step does and what its
+  output means, so the notebook reads as well as it runs

@@ -12,6 +12,10 @@ data Environment = Environment
     -- ^ Temporary directory for REPL project scaffolding.
     , envGlobalDeps :: Set Text
     -- ^ Dependencies from global.md / preinstalled packages (immutable).
+    , envLocalPackages :: [FilePath]
+    {- ^ Local package checkouts (absolute) to overlay in the repl @cabal.project@.
+    From the @SABELA_LOCAL_PACKAGES@ env var (operator-set, dev-only).
+    -}
     , envDebugLog :: Bool
     -- ^ Whether to emit verbose debug logging to stderr.
     , envAnthropicKey :: Maybe Text

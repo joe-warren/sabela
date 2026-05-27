@@ -1,7 +1,7 @@
 module Main (main) where
 
 import Control.Exception (finally)
-import Control.Monad (when)
+import Control.Monad (unless, when)
 import Data.Maybe (isJust)
 import qualified Data.Set as S
 import qualified Data.Text as T
@@ -21,7 +21,7 @@ import System.Directory (
     removeFile,
  )
 import System.Environment (getArgs, lookupEnv)
-import System.FilePath (takeDirectory, (</>))
+import System.FilePath (splitSearchPath, takeDirectory, (</>))
 import System.Process (getCurrentPid)
 
 import Data.Aeson (encode, object, (.=))
@@ -50,7 +50,13 @@ start port workDir globalFile pkgs = do
     let allGlobalDeps = globalDeps `S.union` preinstalledDeps
     httpMgr <- newTlsManager
     mAiToken <- fmap T.pack <$> lookupEnv "SABELA_AI_TOKEN"
-    app <- newApp workDir allGlobalDeps (Just httpMgr) mAiToken
+    mLocalPkgs <- lookupEnv "SABELA_LOCAL_PACKAGES"
+    let localPkgs = case mLocalPkgs of
+            Just s | not (null s) -> splitSearchPath s
+            _ -> []
+    unless (null localPkgs) $
+        putStrLn ("Local package overlays: " ++ unwords localPkgs)
+    app <- newApp workDir allGlobalDeps (Just httpMgr) mAiToken localPkgs
     rn <- setupReactive app
     registryFile <- writeDiscoveryRegistry port workDir mAiToken
     putStrLn $ "sabela running on http://localhost:" ++ show port ++ "/index.html"

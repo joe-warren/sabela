@@ -106,6 +106,113 @@ name <- display (textInput "name" "World")
 displayHtml $ "<h2>Hello, " ++ name ++ "!</h2>"
 ```
 
+## scatterSelect
+
+```haskell
+-- scatterSelect :: String -> [(Double, Double)] -> Behavior [Int]
+--                  name      points
+```
+
+An interactive scatter plot. Drag on the canvas to draw a freeform **lasso** — the
+points inside become the selection; double-click to clear. `scatterSelect` returns
+the **indices** of the selected points (positions into the `points` list you
+passed), so any cell that uses the result re-runs when the selection changes. The
+plot is a plain `<canvas>` with no external libraries and comfortably handles tens
+of thousands of points (downsample beyond ~50k).
+
+```haskell
+let pts = [(x, sin x + x / 6) | x <- map (/ 4) [0 .. 80 :: Double]]
+sel <- display (scatterSelect "wave" pts)
+
+displayHtml $ "<p><b>" ++ show (length sel) ++ "</b> selected: "
+           ++ show (take 12 sel) ++ "</p>"
+```
+
+### Styling & colour (`scatterSelectWith`)
+
+For granite-style plot options, use `scatterSelectWith name opts pts` with a
+`ScatterOpts` record — built by record-update over `defScatter`, exactly like
+granite's `defPlot { … }`:
+
+```haskell
+-- defScatter :: ScatterOpts   (every field optional; these are the defaults)
+--   soWidth  = 560     soHeight   = 360        -- canvas size, px
+--   soColor  = "#4a9eff"   soAlpha = 0.55      -- base point colour / opacity
+--   soRadius = 2           soSelColor = "#e3116c"
+--   soTitle  = ""      soXLabel = ""   soYLabel = ""
+--   soXBounds = Nothing    soYBounds = Nothing -- Just (lo,hi) to override the fit
+--   soColorBy = []         -- [Double]: shade points by a value (gradient + colourbar)
+```
+
+Colours are **CSS strings** (`"tomato"`, `"#4a9eff"`, `"rgb(74,158,255)"`) — the
+prelude is dependency-free so it can't use `Granite.Color`. Drop the alpha to tame
+overplotting, and add a title/axis labels:
+
+```haskell
+let opts = defScatter { soColor = "tomato", soAlpha = 0.3, soRadius = 3
+                      , soTitle = "Income vs value"
+                      , soXLabel = "median income", soYLabel = "house value" }
+sel <- display (scatterSelectWith "wave" opts pts)
+```
+
+Colour points by a third variable — Sabela maps it through a viridis-style gradient
+and draws a colourbar:
+
+```haskell
+sel <- display (scatterSelectWith "wave" defScatter { soColorBy = sizes } pts)
+--                                                     ^ sizes :: [Double], one per point
+```
+
+`scatterSelect name = scatterSelectWith name defScatter`, so the zero-config form
+keeps working everywhere.
+
+### Filtering a DataFrame by the selection
+
+The indices line up with the rows of the `DataFrame` you built the points from
+(same order). `dataframe` has no "rows by index" primitive, so define a small
+helper once:
+
+```haskell
+-- cabal: build-depends: dataframe, text, containers
+-- cabal: default-extensions: OverloadedStrings, TypeApplications
+import qualified DataFrame as D
+import qualified DataFrame.Functions as F
+import DataFrame ((|>))
+import qualified Data.IntSet as IntSet
+
+selectRows :: [Int] -> D.DataFrame -> D.DataFrame
+selectRows idxs df =
+    let keep    = IntSet.fromList idxs
+        n       = D.nRows df
+        withRow = D.insert "_row" [0 .. n - 1 :: Int] df
+     in withRow
+            |> D.filter (F.col @Int "_row") (`IntSet.member` keep)
+            |> D.select (filter (/= "_row") (D.columnNames withRow))
+```
+
+Then select-then-filter is two cells. The plot binds `sel`:
+
+```haskell
+let pts = zip (D.columnAsList (F.col @Double "median_income")     df)
+              (D.columnAsList (F.col @Double "median_house_value") df)
+sel <- display (scatterSelect "housing" pts)
+```
+
+…and a downstream cell reacts to it automatically:
+
+```haskell
+let chosen = selectRows sel df
+displayMarkdown $ "Selected **" ++ show (D.nRows chosen) ++ "** of "
+               ++ show (D.nRows df) ++ " rows"
+```
+
+See `examples/scatter-selection.md` for a complete, runnable version.
+
+> **Note** — `scatterSelect` bakes the current selection into the canvas, so the
+> highlight survives the cell re-run. Exporting a notebook to a standalone module
+> does not yet freeze `scatterSelect` to a static value (the same limitation that
+> applies to `fmap`/`liftA2`-composed widgets).
+
 ## Combining with fmap and liftA2
 
 `Behavior` is `Functor` and `Applicative`, so standard Prelude functions work directly.
