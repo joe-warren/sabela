@@ -461,6 +461,54 @@
         padding: 3px 8px;
         cursor: pointer;
       }
+      .sidebar-filter {
+        padding: 6px 10px;
+        border-bottom: 1px solid var(--border);
+        flex-shrink: 0;
+      }
+      .sidebar-filter input {
+        width: 100%;
+        box-sizing: border-box;
+        font-family: var(--font-mono);
+        font-size: 11px;
+        background: var(--bg-cell);
+        border: 1px solid var(--accent-dim);
+        border-radius: 3px;
+        color: var(--fg);
+        padding: 3px 6px;
+        outline: none;
+      }
+      .sidebar-filter input:focus {
+        border-color: var(--accent);
+      }
+      .preview-bar {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        margin-top: 8px;
+        padding: 6px 10px;
+        font-size: 11px;
+        color: var(--fg-dim);
+        border: 1px solid var(--border);
+        border-radius: var(--radius);
+        background: var(--bg-cell);
+      }
+      .preview-info {
+        flex: 1;
+      }
+      .preview-btn {
+        font-family: var(--font-mono);
+        font-size: 11px;
+        background: var(--accent);
+        color: var(--bg);
+        border: none;
+        border-radius: 3px;
+        padding: 3px 8px;
+        cursor: pointer;
+      }
+      .preview-btn:hover {
+        opacity: 0.85;
+      }
 
       /* ── Right panel (info / examples) ─────────── */
       .right-panel {
@@ -2301,6 +2349,14 @@
           <line x1="8" y1="13" x2="16" y2="13" />
           <line x1="8" y1="17" x2="13" y2="17" />
         </symbol>
+        <symbol id="i-link" viewBox="0 0 24 24">
+          <path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71" />
+          <path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71" />
+        </symbol>
+        <symbol id="i-fold" viewBox="0 0 24 24">
+          <polyline points="17 11 12 6 7 11" />
+          <polyline points="17 18 12 13 7 18" />
+        </symbol>
       </defs>
     </svg>
 
@@ -2411,6 +2467,28 @@
       </div>
     </div>
 
+    <!-- Import-from-URL modal -->
+    <div
+      id="import-url-overlay"
+      class="ai-modal-overlay"
+      style="display: none"
+      onclick="if(event.target===this)closeImportUrl(null)"
+    >
+      <div class="ai-modal input-modal" role="dialog" aria-labelledby="import-url-title" aria-modal="true">
+        <h2 id="import-url-title">Import from URL</h2>
+        <p class="modal-message">Paste a notebook/file URL. GitHub and gist links are fetched as raw.</p>
+        <label class="field-label" for="import-url-field">URL</label>
+        <input type="text" id="import-url-field" placeholder="https://…" autocomplete="off" spellcheck="false" />
+        <label class="field-label" for="import-url-name">Save as</label>
+        <input type="text" id="import-url-name" placeholder="filename.md" autocomplete="off" spellcheck="false" />
+        <div class="modal-error" id="import-url-error"></div>
+        <div class="ai-modal-actions">
+          <button class="secondary" id="import-url-cancel" onclick="closeImportUrl(null)">Cancel</button>
+          <button class="primary" id="import-url-ok">Import</button>
+        </div>
+      </div>
+    </div>
+
     <div id="build-modal" class="build-modal" style="display: none" role="dialog" aria-label="Build log">
       <div class="build-modal-header">
         <span class="build-modal-title" id="build-modal-title">Building…</span>
@@ -2472,9 +2550,26 @@
           <button onclick="startUpload('.')" title="Upload files" aria-label="Upload files">
             <svg class="icon-svg small"><use href="#i-upload" /></svg>
           </button>
+          <button onclick="startImportUrl('.')" title="Import from URL" aria-label="Import from URL">
+            <svg class="icon-svg small"><use href="#i-link" /></svg>
+          </button>
+          <button onclick="collapseAllDirs()" title="Collapse all" aria-label="Collapse all folders">
+            <svg class="icon-svg small"><use href="#i-fold" /></svg>
+          </button>
           <button onclick="refreshFiles()" title="Refresh" aria-label="Refresh file tree">
             <svg class="icon-svg small"><use href="#i-refresh" /></svg>
           </button>
+        </div>
+        <div class="sidebar-filter">
+          <input
+            type="text"
+            id="file-filter"
+            placeholder="filter files…"
+            autocomplete="off"
+            spellcheck="false"
+            oninput="applyFileFilter()"
+            aria-label="Filter files by name"
+          />
         </div>
         <div id="new-item-input" style="display: none"></div>
         <div class="file-tree" id="file-tree"></div>
@@ -3145,22 +3240,10 @@
         } else if (mime === 'text/markdown') {
           container.innerHTML = '';
           container.className = 'cell-output mime-markdown';
-          // Render KaTeX before marked so $$...$$/$...$ survive marked's underscore/star handling.
-          let md = content
-            .replace(/\$\$([\s\S]+?)\$\$/g, (_, tex) => {
-              try {
-                return katex.renderToString(tex.trim(), { displayMode: true, throwOnError: false });
-              } catch (_e) {
-                return _;
-              }
-            })
-            .replace(/(^|[^\\$])\$([^\$\n]+?)\$(?!\d)/g, (_, pre, tex) => {
-              try {
-                return pre + katex.renderToString(tex, { displayMode: false, throwOnError: false });
-              } catch (_e) {
-                return _;
-              }
-            });
+          // Render KaTeX before marked so $$...$$/$...$ survive marked's
+          // underscore/star handling; code spans are protected so dollar signs
+          // inside them are never treated as math delimiters.
+          const md = renderMathInMarkdown(content);
           container.innerHTML = marked.parse(md);
           container.querySelectorAll('table').forEach((t) => {
             const w = document.createElement('div');
@@ -3228,7 +3311,52 @@
       }
 
       // ── File explorer ────────────────────────────────────────────────
-      const expandedDirs = new Set(['']);
+      // Which folders are open in the explorer. Persisted to localStorage so the
+      // tree comes back the way it was left after a reload. '' is the root.
+      const EXPANDED_DIRS_KEY = 'sabela:expandedDirs';
+      function loadExpandedDirs() {
+        try {
+          const raw = localStorage.getItem(EXPANDED_DIRS_KEY);
+          if (raw) return new Set(['', ...JSON.parse(raw)]);
+        } catch (e) {}
+        return new Set(['']);
+      }
+      function persistExpandedDirs() {
+        try {
+          localStorage.setItem(EXPANDED_DIRS_KEY, JSON.stringify([...expandedDirs].filter((p) => p !== '')));
+        } catch (e) {}
+      }
+      const expandedDirs = loadExpandedDirs();
+
+      function collapseAllDirs() {
+        expandedDirs.clear();
+        expandedDirs.add('');
+        persistExpandedDirs();
+        refreshFiles();
+      }
+
+      // Live-filter the rendered tree by filename. Limitation: only the
+      // currently loaded (expanded) rows are filtered; collapsed folders aren't
+      // fetched just to search them.
+      function applyFileFilter() {
+        const q = (document.getElementById('file-filter').value || '').trim().toLowerCase();
+        const rows = document.getElementById('file-tree').querySelectorAll('.file-entry');
+        rows.forEach((row) => {
+          const name = (row.dataset.name || '').toLowerCase();
+          let show = !q || name.includes(q);
+          if (q && !show && row.dataset.isDir === '1') {
+            const child = row.nextElementSibling;
+            show = !!(
+              child &&
+              Array.from(child.querySelectorAll('.file-entry')).some((r) =>
+                (r.dataset.name || '').toLowerCase().includes(q)
+              )
+            );
+          }
+          row.style.display = show ? '' : 'none';
+        });
+      }
+
       function toggleSidebar() {
         document.getElementById('sidebar').classList.toggle('collapsed');
       }
@@ -3290,6 +3418,7 @@
                   icon.textContent = '▾';
                   await loadFileTree(entry.fePath, childContainer, depth + 1);
                 }
+                persistExpandedDirs();
               };
               container.appendChild(row);
               container.appendChild(childContainer);
@@ -3299,6 +3428,7 @@
               container.appendChild(row);
             }
           }
+          applyFileFilter();
         } catch (e) {
           container.textContent = 'Error loading files';
           console.error(e);
@@ -3309,6 +3439,7 @@
         const ext = entry.feName.split('.').pop();
         if (ext === 'md') {
           setStatus('Loading ' + entry.fePath + '...', 'running');
+          activePreviewCm = null;
           try {
             const nb = await api('POST', 'load', { lrPath: entry.fePath });
             Object.keys(editors).forEach((k) => delete editors[k]);
@@ -3319,48 +3450,139 @@
             setStatus('Load failed: ' + e.message, 'error');
           }
         } else {
-          try {
-            const content = await api('GET', 'file?path=' + encodeURIComponent(entry.fePath));
-            showReadOnlyFile(entry.feName, entry.fePath, content);
-          } catch (e) {
-            setStatus('Could not read file', 'error');
-          }
+          showFilePreview(entry.feName, entry.fePath);
         }
       }
 
-      function showReadOnlyFile(name, path, content) {
+      // The active non-notebook editor, tracked so periodic autosave can flush
+      // it. Only set once the file is fully loaded and therefore editable.
+      let activePreviewCm = null;
+      const PREVIEW_WINDOW = 256 * 1024;
+      const FULL_LOAD_WARN = 5 * 1024 * 1024;
+
+      function fmtBytes(n) {
+        if (n < 1024) return n + ' B';
+        if (n < 1024 * 1024) return (n / 1024).toFixed(1) + ' KB';
+        return (n / (1024 * 1024)).toFixed(1) + ' MB';
+      }
+
+      // Open a non-markdown file as a size-safe preview: only a window of bytes
+      // is fetched, so a huge file can never load whole and freeze the tab. The
+      // editor stays read-only until the whole file is loaded — saving a
+      // truncated buffer would clobber the rest on disk.
+      async function showFilePreview(name, path) {
         const container = document.getElementById('notebook');
         Object.keys(editors).forEach((k) => delete editors[k]);
         notebook = null;
+        activePreviewCm = null;
         container.innerHTML = '';
         document.getElementById('toolbar-title').textContent = '📄 ' + name;
+        setStatus('Loading ' + path + '…', 'running');
+
+        let first;
+        try {
+          first = await api(
+            'GET',
+            'file/preview?path=' + encodeURIComponent(path) + '&offset=0&limit=' + PREVIEW_WINDOW
+          );
+        } catch (e) {
+          setStatus('Could not read file', 'error');
+          return;
+        }
+        setStatus('', '');
 
         const wrapper = document.createElement('div');
         wrapper.style.cssText =
           'background: var(--bg-cell); border: 1px solid var(--border); border-radius: var(--radius); overflow: hidden;';
         container.appendChild(wrapper);
+        const bar = document.createElement('div');
+        bar.className = 'preview-bar';
+        container.appendChild(bar);
+
+        const state = { path, loaded: first.fpReturned, total: first.fpTotalBytes, eof: first.fpEof };
 
         requestAnimationFrame(() => {
           const ext = name.split('.').pop();
           const mode = ext === 'hs' ? 'haskell' : null;
           const cm = CodeMirror(wrapper, {
-            value: content,
+            value: first.fpContent,
             mode: mode,
             theme: currentTheme() === 'light' ? 'idea' : 'nord',
             lineNumbers: true,
-            readOnly: false,
+            readOnly: !first.fpEof,
             viewportMargin: Infinity,
           });
-          // Allow saving arbitrary files
           cm._filePath = path;
           cm.on('change', () => {
             cm._dirty = true;
           });
-          cm.setOption('extraKeys', {
-            'Ctrl-S': () => saveArbitraryFile(cm),
-            'Cmd-S': () => saveArbitraryFile(cm),
-          });
+          if (first.fpEof) enablePreviewEditing(cm);
+          updatePreviewBar(bar, cm, state);
         });
+      }
+
+      function enablePreviewEditing(cm) {
+        cm.setOption('readOnly', false);
+        cm.setOption('extraKeys', {
+          'Ctrl-S': () => saveArbitraryFile(cm),
+          'Cmd-S': () => saveArbitraryFile(cm),
+        });
+        cm._editable = true;
+        activePreviewCm = cm;
+      }
+
+      function updatePreviewBar(bar, cm, state) {
+        bar.innerHTML = '';
+        const info = document.createElement('span');
+        info.className = 'preview-info';
+        info.textContent = state.eof
+          ? fmtBytes(state.total) + ' · full file' + (cm._editable ? ' · ⌘S / Ctrl-S to save' : '')
+          : 'Showing ' + fmtBytes(state.loaded) + ' of ' + fmtBytes(state.total) + ' · read-only preview';
+        bar.appendChild(info);
+        if (!state.eof) {
+          const moreBtn = document.createElement('button');
+          moreBtn.className = 'preview-btn';
+          moreBtn.textContent = 'Show more';
+          moreBtn.onclick = () => loadMorePreview(bar, cm, state, false);
+          bar.appendChild(moreBtn);
+          const fullBtn = document.createElement('button');
+          fullBtn.className = 'preview-btn';
+          fullBtn.textContent = 'Load full file';
+          fullBtn.onclick = () => loadMorePreview(bar, cm, state, true);
+          bar.appendChild(fullBtn);
+        }
+      }
+
+      async function loadMorePreview(bar, cm, state, full) {
+        if (full && state.total - state.loaded > FULL_LOAD_WARN) {
+          const ok = await askConfirm({
+            title: 'Load full file?',
+            message: 'This file is ' + fmtBytes(state.total) + '. Loading all of it may be slow.',
+            confirmLabel: 'Load all',
+          });
+          if (!ok) return;
+        }
+        const limit = full ? state.total - state.loaded : PREVIEW_WINDOW;
+        let res;
+        try {
+          res = await api(
+            'GET',
+            'file/preview?path=' + encodeURIComponent(state.path) + '&offset=' + state.loaded + '&limit=' + limit
+          );
+        } catch (e) {
+          setStatus('Could not read more of the file', 'error');
+          return;
+        }
+        const wasReadOnly = cm.getOption('readOnly');
+        cm.setOption('readOnly', false);
+        const last = cm.lastLine();
+        cm.replaceRange(res.fpContent, { line: last, ch: cm.getLine(last).length });
+        cm._dirty = false;
+        state.loaded += res.fpReturned;
+        state.eof = res.fpEof;
+        if (state.eof) enablePreviewEditing(cm);
+        else cm.setOption('readOnly', wasReadOnly);
+        updatePreviewBar(bar, cm, state);
       }
 
       async function saveArbitraryFile(cm) {
@@ -3471,6 +3693,95 @@
         );
       }
 
+      // ── Import from URL ──────────────────────────────────────────────
+      // The server fetches the URL (the browser can't, due to CORS) and writes
+      // it into `dir`. GitHub/gist links are rewritten to their raw form
+      // server-side; a freshly imported .md opens straight away.
+      let _importDir = '.';
+      function startImportUrl(dir) {
+        _importDir = dir || '.';
+        const overlay = document.getElementById('import-url-overlay');
+        const urlField = document.getElementById('import-url-field');
+        const nameField = document.getElementById('import-url-name');
+        urlField.value = '';
+        nameField.value = '';
+        delete nameField.dataset.touched;
+        document.getElementById('import-url-error').textContent = '';
+        overlay.style.display = 'flex';
+        urlField.oninput = () => {
+          if (!nameField.dataset.touched) nameField.value = suggestNameFromUrl(urlField.value);
+        };
+        nameField.oninput = () => {
+          nameField.dataset.touched = '1';
+        };
+        document.getElementById('import-url-ok').onclick = doImportUrl;
+        const onKey = (e) => {
+          if (e.key === 'Enter') {
+            e.preventDefault();
+            doImportUrl();
+          } else if (e.key === 'Escape') {
+            e.preventDefault();
+            closeImportUrl();
+          }
+        };
+        urlField.onkeydown = onKey;
+        nameField.onkeydown = onKey;
+        setTimeout(() => urlField.focus(), 30);
+      }
+
+      function suggestNameFromUrl(u) {
+        let path = (u || '').split('#')[0].split('?')[0].replace(/\/+$/, '');
+        let base = path.substring(path.lastIndexOf('/') + 1);
+        if (base && !base.includes('.')) base += '.md';
+        return base;
+      }
+
+      function closeImportUrl() {
+        document.getElementById('import-url-overlay').style.display = 'none';
+      }
+
+      async function doImportUrl() {
+        const url = document.getElementById('import-url-field').value.trim();
+        const name = document.getElementById('import-url-name').value.trim();
+        const errEl = document.getElementById('import-url-error');
+        if (!url) {
+          errEl.textContent = 'A URL is required.';
+          return;
+        }
+        if (!name) {
+          errEl.textContent = 'A save-as name is required.';
+          return;
+        }
+        errEl.textContent = '';
+        setStatus('Importing ' + name + '…', 'running');
+        let result;
+        try {
+          const q =
+            '/api/import-url?url=' +
+            encodeURIComponent(url) +
+            '&name=' +
+            encodeURIComponent(name) +
+            '&dir=' +
+            encodeURIComponent(_importDir);
+          const r = await fetch(q, { method: 'POST' });
+          if (!r.ok) {
+            const j = await r.json().catch(() => null);
+            throw new Error((j && j.error) || 'Import failed');
+          }
+          result = await r.json();
+        } catch (e) {
+          errEl.textContent = e.message;
+          setStatus('Import failed: ' + e.message, 'error');
+          return;
+        }
+        closeImportUrl();
+        refreshFiles();
+        setStatus('Imported ' + result.path, '');
+        if (result.path && result.path.endsWith('.md')) {
+          openFile({ feName: result.name, fePath: result.path, feIsDir: false });
+        }
+      }
+
       // ── File context menu ───────────────────────────────────────────
       let activeCtxMenu = null;
 
@@ -3489,10 +3800,17 @@
         if (!isDir) {
           addCtxItem(menu, 'Open', 'i-file-text', () => openFile({ feName: name, fePath: path, feIsDir: false }));
         }
-        if (!isDir && name.endsWith('.md') && notebook && notebook.nbTitle === path) {
-          addCtxItem(menu, 'Download .md', 'i-download', () => downloadMarkdown());
+        addCtxItem(menu, 'Copy relative path', 'i-copy', () => copyRelPath(path));
+        if (!isDir) {
+          if (name.endsWith('.md') && notebook && notebook.nbTitle === path) {
+            addCtxItem(menu, 'Download .md', 'i-download', () => downloadMarkdown());
+          } else {
+            addCtxItem(menu, 'Download', 'i-download', () => downloadAsset(path, name));
+          }
         }
+        addCtxSep(menu);
         addCtxItem(menu, 'Rename', 'i-edit', () => promptRenameFile(path, name));
+        addCtxItem(menu, 'Move to folder…', 'i-folder', () => promptMoveFile(path, name));
         if (!isDir) {
           addCtxItem(menu, 'Duplicate', 'i-copy', () => duplicateFile(path, name));
         }
@@ -3501,6 +3819,7 @@
           addCtxItem(menu, 'New file here', 'i-file-plus', () => promptNewFileIn(path));
           addCtxItem(menu, 'New folder here', 'i-folder-plus', () => promptNewFolderIn(path));
           addCtxItem(menu, 'Upload files here', 'i-upload', () => startUpload(path));
+          addCtxItem(menu, 'Import from URL here', 'i-link', () => startImportUrl(path));
           addCtxSep(menu);
         }
         addCtxItem(menu, 'Delete', 'i-trash', () => confirmDeleteFile(path, name, isDir), true);
@@ -3876,6 +4195,48 @@
         }
       }
 
+      // Move via the rename endpoint, which already accepts a cross-directory
+      // destination. Type "." to move to the workspace root.
+      async function promptMoveFile(oldPath, name) {
+        const curDir = oldPath.includes('/') ? oldPath.substring(0, oldPath.lastIndexOf('/')) : '.';
+        const dest = await askInput({
+          title: 'Move ' + name,
+          label: 'Destination folder',
+          placeholder: 'folder path ("." for root)',
+          defaultValue: curDir,
+          confirmLabel: 'Move',
+        });
+        if (dest === null) return;
+        const raw = dest.trim().replace(/\/+$/, '');
+        const cleanDir = raw === '.' ? '' : raw;
+        const newPath = cleanDir ? cleanDir + '/' + name : name;
+        if (newPath === oldPath) return;
+        renameFile(oldPath, newPath);
+      }
+
+      function copyRelPath(path) {
+        if (navigator.clipboard && navigator.clipboard.writeText) {
+          navigator.clipboard.writeText(path).then(
+            () => {
+              setStatus('Copied ' + path, '');
+              flashSaved();
+            },
+            () => setStatus('Copy failed', 'error')
+          );
+        } else {
+          setStatus('Clipboard unavailable', 'error');
+        }
+      }
+
+      function downloadAsset(path, name) {
+        const a = document.createElement('a');
+        a.href = '/api/asset?path=' + encodeURIComponent(path);
+        a.download = name;
+        document.body.appendChild(a);
+        a.click();
+        a.remove();
+      }
+
       async function duplicateFile(path, name) {
         const ext = name.includes('.') ? '.' + name.split('.').pop() : '';
         const base = name.includes('.') ? name.substring(0, name.lastIndexOf('.')) : name;
@@ -3949,6 +4310,17 @@
 
       setInterval(() => {
         if (unsavedChanges) saveNotebook();
+        // Also flush a fully-loaded, edited non-notebook file. Truncated
+        // previews stay read-only, so they never reach here. Drop the handle
+        // once its editor has been detached (e.g. a notebook was opened).
+        if (activePreviewCm) {
+          const el = activePreviewCm.getWrapperElement && activePreviewCm.getWrapperElement();
+          if (!el || !el.isConnected) {
+            activePreviewCm = null;
+          } else if (activePreviewCm._editable && activePreviewCm._dirty) {
+            saveArbitraryFile(activePreviewCm);
+          }
+        }
       }, AUTOSAVE_INTERVAL_MS);
 
       // ── Right panel ──────────────────────────────────────────────────
@@ -4313,6 +4685,33 @@
         });
       }
 
+      // Render $$..$$ / $..$ to KaTeX HTML, but never touch dollar signs inside
+      // fenced code blocks or inline `code` spans — so prose about operators
+      // like `$` renders literally instead of being eaten as math delimiters.
+      function renderMathInMarkdown(src) {
+        const code = [];
+        let s = String(src == null ? '' : src).replace(/(```[\s\S]*?```|~~~[\s\S]*?~~~|(`+)[^`\n]*?\2)/g, (m) => {
+          code.push(m);
+          return `@@CODE${code.length - 1}@@`;
+        });
+        s = s
+          .replace(/\$\$([\s\S]+?)\$\$/g, (_, tex) => {
+            try {
+              return katex.renderToString(tex.trim(), { displayMode: true, throwOnError: false });
+            } catch (_e) {
+              return _;
+            }
+          })
+          .replace(/(^|[^\\$])\$([^\$\n]+?)\$(?!\d)/g, (_, pre, tex) => {
+            try {
+              return pre + katex.renderToString(tex, { displayMode: false, throwOnError: false });
+            } catch (_e) {
+              return _;
+            }
+          });
+        return s.replace(/@@CODE(\d+)@@/g, (_, i) => code[+i]);
+      }
+
       function renderProseHTML(source) {
         let src = (source || '').replace(/!\[([^\]]*)\]\(([^)\n]*\s[^)\n]*)\)/g, (m, alt, dest) => {
           const d = dest.trim();
@@ -4322,21 +4721,9 @@
         // Render math BEFORE marked: katex.renderToString produces HTML that
         // marked v12 passes through unchanged. Going math→marked dodges all
         // the markdown re-interpretations of LaTeX (_, *, {, etc.) that broke
-        // earlier placeholder-based attempts.
-        src = src.replace(/\$\$([\s\S]+?)\$\$/g, (_, tex) => {
-          try {
-            return katex.renderToString(tex.trim(), { displayMode: true, throwOnError: false });
-          } catch (_e) {
-            return _;
-          }
-        });
-        src = src.replace(/(^|[^\\$])\$([^\$\n]+?)\$(?!\d)/g, (_, pre, tex) => {
-          try {
-            return pre + katex.renderToString(tex, { displayMode: false, throwOnError: false });
-          } catch (_e) {
-            return _;
-          }
-        });
+        // earlier placeholder-based attempts. Code spans are protected so the
+        // dollar signs inside them are never treated as math delimiters.
+        src = renderMathInMarkdown(src);
         const tpl = document.createElement('template');
         tpl.innerHTML = marked.parse(src);
         tpl.content.querySelectorAll('img[src]').forEach((img) => {

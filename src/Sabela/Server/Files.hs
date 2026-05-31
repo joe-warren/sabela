@@ -9,6 +9,7 @@ module Sabela.Server.Files (
     -- * Handlers
     listFilesH,
     readFileH,
+    readFilePreviewH,
     createFileH,
     writeFileH,
     deleteFileH,
@@ -21,16 +22,21 @@ module Sabela.Server.Files (
 
 import Control.Monad (forM)
 import Control.Monad.IO.Class (liftIO)
+import qualified Data.ByteString as BS
 import Data.Char (toLower)
 import Data.List (isPrefixOf, sort)
+import Data.Maybe (fromMaybe)
 import Data.Text (Text)
 import qualified Data.Text as T
+import qualified Data.Text.Encoding as TE
+import Data.Text.Encoding.Error (lenientDecode)
 import qualified Data.Text.IO as TIO
 import Servant (Handler, NoContent (..))
 import System.Directory (
     canonicalizePath,
     createDirectoryIfMissing,
     doesDirectoryExist,
+    getFileSize,
     listDirectory,
     removeDirectoryRecursive,
     removeFile,
@@ -42,6 +48,12 @@ import System.FilePath (
     splitDirectories,
     takeDirectory,
     (</>),
+ )
+import System.IO (
+    IOMode (ReadMode),
+    SeekMode (AbsoluteSeek),
+    hSeek,
+    withFile,
  )
 
 import Sabela.Api
@@ -99,6 +111,42 @@ readFileH app mPath = liftIO $ do
     if not (workDir `isPrefixOfPath` canon)
         then pure "(access denied)"
         else TIO.readFile canon
+
+-- | Default preview window when the client omits @?limit=@ (256 KiB).
+defaultPreviewLimit :: Int
+defaultPreviewLimit = 256 * 1024
+
+{- | Hard ceiling on a single preview window, so one request can't slurp a
+huge file (4 MiB).
+-}
+maxPreviewLimit :: Int
+maxPreviewLimit = 4 * 1024 * 1024
+
+{- | Read a bounded @[offset, offset+limit)@ byte window of a file and
+report the total size, so the frontend can page through a large file with
+@\"Show more\"@ instead of loading it whole. Bytes are decoded leniently,
+so a window that splits a multi-byte character still returns text.
+-}
+readFilePreviewH ::
+    App -> Maybe Text -> Maybe Int -> Maybe Int -> Handler FilePreview
+readFilePreviewH app mPath mOffset mLimit = liftIO $ do
+    let workDir = envWorkDir (appEnv app)
+        relPath = maybe "" T.unpack mPath
+        absPath = workDir </> relPath
+        offset = max 0 (fromMaybe 0 mOffset)
+        limit = min maxPreviewLimit (max 1 (fromMaybe defaultPreviewLimit mLimit))
+    canon <- canonicalizePath absPath
+    if not (workDir `isPrefixOfPath` canon)
+        then pure (FilePreview "(access denied)" 0 0 0 True)
+        else do
+            total <- fromIntegral <$> getFileSize canon
+            chunk <- withFile canon ReadMode $ \h -> do
+                hSeek h AbsoluteSeek (fromIntegral offset)
+                BS.hGet h limit
+            let returned = BS.length chunk
+                content = TE.decodeUtf8With lenientDecode chunk
+                eof = offset + returned >= total
+            pure (FilePreview content offset returned total eof)
 
 createFileH :: App -> CreateFileRequest -> Handler FileEntry
 createFileH app req = liftIO $ do

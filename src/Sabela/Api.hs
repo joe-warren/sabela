@@ -155,6 +155,22 @@ data RenameFileRequest = RenameFileRequest
 instance ToJSON RenameFileRequest
 instance FromJSON RenameFileRequest
 
+{- | A bounded window of a file's bytes for @GET /api/file/preview@. The
+frontend pulls one window at a time so a multi-gigabyte file never loads
+whole; @fpEof@ says whether @fpOffset + fpReturned@ reached the end.
+-}
+data FilePreview = FilePreview
+    { fpContent :: Text
+    , fpOffset :: Int
+    , fpReturned :: Int
+    , fpTotalBytes :: Int
+    , fpEof :: Bool
+    }
+    deriving (Show, Generic, Eq)
+
+instance ToJSON FilePreview
+instance FromJSON FilePreview
+
 newtype CompleteRequest = CompleteRequest
     { crPrefix :: Text
     }

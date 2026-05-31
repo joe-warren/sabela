@@ -52,6 +52,16 @@ spec = describe "Sabela.Api wire shapes" $ do
             LC8.unpack (encode (CreateFile "a.md" "hi"))
                 `shouldContain` "cfPath"
 
+    describe "FilePreview" $ do
+        it "emits fpContent/fpOffset/fpReturned/fpTotalBytes/fpEof keys" $ do
+            let s = LC8.unpack (encode (FilePreview "hi" 0 2 2 True))
+            s `shouldContain` "fpContent"
+            s `shouldContain` "fpTotalBytes"
+            s `shouldContain` "fpEof"
+        it "round-trips through encode/decode" $
+            decode (encode (FilePreview "hi" 5 2 7 False))
+                `shouldBe` Just (FilePreview "hi" 5 2 7 False)
+
     describe "InsertCell" $ do
         it "decodes icAfter=-1 as AtBeginning" $
             decode

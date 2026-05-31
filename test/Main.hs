@@ -21,6 +21,7 @@ import qualified Test.SessionSpec as SessionSpec
 import qualified Test.ToolParseSpec as ToolParseSpec
 import qualified Test.TopoSpec as TopoSpec
 import qualified Test.UploadSpec as UploadSpec
+import qualified Test.UrlSpec as UrlSpec
 import qualified Test.UsageEventSpec as UsageEventSpec
 import qualified Test.UsageMergeSpec as UsageMergeSpec
 
@@ -45,6 +46,7 @@ main = hspec $ do
     ScratchpadRenderSpec.spec
     ToolParseSpec.spec
     UploadSpec.spec
+    UrlSpec.spec
     UsageEventSpec.spec
     UsageMergeSpec.spec
     ApiWireSpec.spec

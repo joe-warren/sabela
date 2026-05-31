@@ -54,6 +54,13 @@ type JsonAPI =
         :<|> "api" :> "file" :> QueryParam "path" Text :> Get '[JSON] Text
         :<|> "api"
             :> "file"
+            :> "preview"
+            :> QueryParam "path" Text
+            :> QueryParam "offset" Int
+            :> QueryParam "limit" Int
+            :> Get '[JSON] FilePreview
+        :<|> "api"
+            :> "file"
             :> "create"
             :> ReqBody '[JSON] CreateFileRequest
             :> Post '[JSON] FileEntry
@@ -129,6 +136,7 @@ type FullAPI =
         :<|> "slideshow" :> Raw
         :<|> "api" :> "asset" :> Raw
         :<|> "api" :> "upload" :> Raw
+        :<|> "api" :> "import-url" :> Raw
         :<|> Raw
 
 fullProxy :: Proxy FullAPI

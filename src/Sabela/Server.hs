@@ -81,9 +81,11 @@ import Sabela.Server.Files (
     deleteFileH,
     listFilesH,
     readFileH,
+    readFilePreviewH,
     renameFileH,
     writeFileH,
  )
+import Sabela.Server.Import (importUrlApp)
 import Sabela.Server.Notebook (
     cellsToSegments,
     deleteCellH,
@@ -199,6 +201,7 @@ server app rn =
         :<|> clearCellH app
         :<|> listFilesH app
         :<|> readFileH app
+        :<|> readFilePreviewH app
         :<|> createFileH app
         :<|> writeFileH app
         :<|> deleteFileH app
@@ -232,4 +235,5 @@ server app rn =
         :<|> Tagged slideshowApp
         :<|> Tagged (assetApp app)
         :<|> Tagged (uploadApp app)
+        :<|> Tagged (importUrlApp app)
         :<|> Tagged staticApp

@@ -1,5 +1,3 @@
-{-# LANGUAGE OverloadedStrings #-}
-
 {- | Typed identifiers shared by the AI subsystem and the 'NotebookEvent'
 SSE wire types. Lives in its own leaf module because 'Sabela.Model' can't
 depend on 'Sabela.AI.Types' (the dependency runs the other way), and the
