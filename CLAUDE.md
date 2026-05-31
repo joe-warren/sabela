@@ -47,9 +47,69 @@ picks up the new content. The generated header line records that it is
 machine-produced; treat a large unexpected diff as a signal the upstream API
 moved, not as something to massage.
 
+## Frontend (modular sources → bundled embeds)
+
+The three served pages — `static/index.html` (the editor), `static/dashboard.html`,
+and `static/slideshow.html` — are **generated build artifacts**. The binary
+embeds them verbatim via Template Haskell (`embedFile` in
+`Sabela.Server.Static`), so the single executable still ships fully
+self-contained with no runtime asset fetches. Do **not** hand-edit those files;
+edit the sources and rebuild.
+
+### Layout
+
+The editable sources live under `static/src/<page>/`:
+
+```
+static/src/index/
+  index.html          # shell: <head>/<body> markup + ordered <link>/<script>/include refs
+  css/*.css           # style partials, inlined in order (cascade preserved)
+  js/*.js             # script partials, inlined in order (one shared global scope)
+  html/icons.svg      # inline SVG icon sprite (an asset; inlined, not fetched)
+  html/modals.html    # body markup fragment
+```
+
+`dashboard/` and `slideshow/` follow the same shape. The numeric filename
+prefixes (`01-…`, `02-…`) encode inline order; the shell lists them explicitly,
+so order is what the shell says, not directory sort.
+
+### The bundler
+
+`tools/build-frontend.mjs` reads each `static/src/<page>/<page>.html` shell and
+inlines its **local** references, coalescing consecutive ones into single
+blocks, then writes `static/<page>.html`:
+
+- `<link rel="stylesheet" href="css/…">` → one `<style>` block
+- `<script src="js/…"></script>` → one `<script>` block
+- `<!-- include: html/… -->` → the fragment inlined verbatim
+- remote (`https://…` CDN) tags pass through untouched
+
+The JS partials are plain (non-module) scripts that share one global scope when
+inlined — exactly as the original single `<script>` did — so functions stay
+reachable from inline `onclick=` handlers. Keep them that way (no ES-module
+`import`/`export` in these partials).
+
+### Workflow
+
+- `make frontend` (or `node tools/build-frontend.mjs`) — rebuild the embeds after
+  editing any partial. **Rebuild sabela (`cabal build`) afterwards** so the
+  TH-embedded pages refresh.
+- `make frontend-check` / `node tools/build-frontend.mjs --check` — fail if any
+  served page is stale vs its partials (run in CI / pre-commit).
+- `./scripts/format.sh` formats the partials with prettier and then rebuilds the
+  embeds; `--check` verifies both. Generated `static/*.html` are excluded from
+  prettier (see `.prettierignore`) — they are artifacts.
+- `dashboard.html` / `slideshow.html` double as **templates**: the static-export
+  endpoints replace the `/*__SABELA_INJECT__*/` placeholder (in
+  `js/head-extra.js`) with notebook JSON (`Sabela.Dashboard`). Preserve that
+  exact placeholder string.
+- Per the module-size cap, keep each `js/*.js` partial ≤ 300 lines
+  (`scripts/check-module-size.sh` enforces it); split a growing one at a
+  function boundary into a new ordered partial.
+
 ## Architecture
 
-The system has three layers: a Haskell backend (Servant/Warp), a static frontend (`static/index.html`), and a long-lived GHCi subprocess.
+The system has three layers: a Haskell backend (Servant/Warp), a static frontend (`static/index.html` and friends, bundled from modular sources — see [Frontend](#frontend-modular-sources--bundled-embeds)), and a long-lived GHCi subprocess.
 
 ### Module Responsibilities
 

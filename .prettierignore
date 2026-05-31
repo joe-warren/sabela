@@ -1,0 +1,13 @@
+# Generated build artifacts — assembled from static/src/ by
+# tools/build-frontend.mjs. Never format these directly; edit the partials.
+static/index.html
+static/dashboard.html
+static/slideshow.html
+
+# Inline SVG icon sprite — no prettier parser, kept verbatim.
+static/src/**/*.svg
+
+# Build output / vendored assets.
+dist-newstyle/
+static/dist-newstyle/
+static/images/

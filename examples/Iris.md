@@ -9,8 +9,6 @@ We depend on `dataframe` (the dataframe library), `dataframe-learn` (the decisio
 tree), `text` (for the label column type) and `random` (for a reproducible
 train/test split).
 
-
-
 ```haskell
 -- cabal: build-depends: dataframe, dataframe-learn, text, random, vector
 -- cabal: default-extensions: OverloadedStrings, TypeApplications, ScopedTypeVariables
@@ -23,14 +21,10 @@ import qualified Data.Text as T
 import System.Random (mkStdGen)
 ```
 
-
-
 ## Loading the data
 
 The classic Iris dataset ships as a small Parquet file. Each row is one flower
 with four `Double` measurements and a `variety` label.
-
-
 
 ```haskell
 df <- D.readParquet "./examples/data/iris.parquet"
@@ -40,7 +34,7 @@ df |> D.take 5
    |> displayMarkdown
 ```
 
-> <!-- sabela:mime text/markdown -->
+> <!-- scripths:mime text/markdown -->
 > | sepal.length<br>Double | sepal.width<br>Double | petal.length<br>Double | petal.width<br>Double | variety<br>Text |
 > | -----------------------|-----------------------|------------------------|-----------------------|---------------- |
 > | 5.1                    | 3.5                   | 1.4                    | 0.2                   | Setosa          |
@@ -49,13 +43,9 @@ df |> D.take 5
 > | 4.6                    | 3.1                   | 1.5                    | 0.2                   | Setosa          |
 > | 5.0                    | 3.6                   | 1.4                    | 0.2                   | Setosa          |
 
-
-
 ## Looking at the data
 
 Before modelling, it helps to know the shape and types of every column.
-
-
 
 ```haskell
 df |> D.describeColumns
@@ -63,7 +53,7 @@ df |> D.describeColumns
    |> displayMarkdown
 ```
 
-> <!-- sabela:mime text/markdown -->
+> <!-- scripths:mime text/markdown -->
 > | Column Name<br>Text | # Non-null Values<br>Int | # Null Values<br>Int | Type<br>Text |
 > | --------------------|--------------------------|----------------------|------------- |
 > | variety             | 150                      | 0                    | Text         |
@@ -72,11 +62,7 @@ df |> D.describeColumns
 > | sepal.width         | 150                      | 0                    | Double       |
 > | sepal.length        | 150                      | 0                    | Double       |
 
-
-
 A summary of the numeric columns shows the ranges each measurement spans.
-
-
 
 ```haskell
 df |> D.summarize
@@ -84,7 +70,7 @@ df |> D.summarize
    |> displayMarkdown
 ```
 
-> <!-- sabela:mime text/markdown -->
+> <!-- scripths:mime text/markdown -->
 > | Statistic<br>Text | sepal.length<br>Double | sepal.width<br>Double | petal.length<br>Double | petal.width<br>Double |
 > | ------------------|------------------------|-----------------------|------------------------|---------------------- |
 > | Count             | 150.0                  | 150.0                 | 150.0                  | 150.0                 |
@@ -98,15 +84,11 @@ df |> D.summarize
 > | IQR               | 1.3                    | 0.5                   | 3.5                    | 1.5                   |
 > | Skewness          | 0.31                   | 0.31                  | -0.27                  | -0.1                  |
 
-
-
 ## Is the dataset balanced?
 
 A severely imbalanced dataset would make accuracy a misleading metric. The Iris
 dataset is famously balanced — 50 of each species — which we can confirm with
 `frequencies`.
-
-
 
 ```haskell
 df |> D.frequencies (F.col @T.Text "variety")
@@ -114,13 +96,11 @@ df |> D.frequencies (F.col @T.Text "variety")
    |> displayMarkdown
 ```
 
-> <!-- sabela:mime text/markdown -->
+> <!-- scripths:mime text/markdown -->
 > | Statistic<br>Text | Setosa<br>Any | Versicolor<br>Any | Virginica<br>Any |
 > | ------------------|---------------|-------------------|----------------- |
 > | Count             | 50            | 50                | 50               |
 > | Percentage (%)    | 33.33%        | 33.33%            | 33.33%           |
-
-
 
 ## Splitting into training and test sets
 
@@ -128,18 +108,14 @@ df |> D.frequencies (F.col @T.Text "variety")
 out 30% of the data for testing and fix the random seed (42) so the split is
 reproducible.
 
-
-
 ```haskell
 let (trainDf, testDf) = D.randomSplit (mkStdGen 42) 0.7 df
 
 (D.dimensions trainDf, D.dimensions testDf)
 ```
 
-> <!-- sabela:mime text/plain -->
+> <!-- scripths:mime text/plain -->
 > ((104,5),(46,5))
-
-
 
 ## Fitting the decision tree
 
@@ -148,25 +124,19 @@ target column (`variety`, a `Text` label), and the training frame. It returns an
 `Expr Text`: a self-contained expression that predicts the species from the
 other columns. Everything else in the frame is treated as a candidate feature.
 
-
-
 ```haskell
 let model = DT.fitDecisionTree DT.defaultTreeConfig (F.col @T.Text "variety") trainDf
 ```
-
-
 
 The fitted model is just data — a tree of `if`/`then`/`else` rules over the
 measurement columns. Unlike the neural network's weight matrices, you can read
 it directly and see exactly how the tree decides.
 
-
-
 ```haskell
 putStrLn $ D.prettyPrint model
 ```
 
-> <!-- sabela:mime text/plain -->
+> <!-- scripths:mime text/plain -->
 > if petal.width .> 0.4
 >   then if petal.width .< 1.8
 >     then if petal.length .> 4.9
@@ -177,15 +147,11 @@ putStrLn $ D.prettyPrint model
 >     else "Virginica"
 >   else "Setosa"
 
-
-
 ## Making predictions
 
 Because the model is an expression, we apply it to the test frame the same way
 we'd add any derived column: with `D.derive`. Here we add a `predicted` column
 next to the true `variety`.
-
-
 
 ```haskell
 let scored = testDf |> D.derive "predicted" model
@@ -196,7 +162,7 @@ scored |> D.select ["variety", "predicted"]
        |> displayMarkdown
 ```
 
-> <!-- sabela:mime text/markdown -->
+> <!-- scripths:mime text/markdown -->
 > | variety<br>Text | predicted<br>Text |
 > | ----------------|------------------ |
 > | Setosa          | Setosa            |
@@ -210,14 +176,10 @@ scored |> D.select ["variety", "predicted"]
 > | Setosa          | Setosa            |
 > | Setosa          | Setosa            |
 
-
-
 ## Measuring accuracy
 
 We mark each test row as correct (1.0) or wrong (0.0) by comparing the true and
 predicted labels with `F.eq`, then take the mean — that mean is the accuracy.
-
-
 
 ```haskell
 let withCorrect =
@@ -233,52 +195,69 @@ let withCorrect =
 putStrLn ("Test accuracy: " ++ show (D.mean (F.col @Double "is_correct") withCorrect))
 ```
 
-> <!-- sabela:mime text/plain -->
+> <!-- scripths:mime text/plain -->
 > Test accuracy: 0.8695652173913043
 
+<!-- sabela:cell -->
 
+## Monte Carlo cross-validation
+
+How robust is the decision tree, and does tuning actually help? A single train/test split can mislead — one lucky shuffle and the tuned model looks better (or worse) than it really is. So we repeat the experiment over many random splits and compare the **default** config against a **tuned** one (deeper trees, finer split percentiles) across all of them.
 ```haskell
--- Monte Carlo cross-validation: 20 random 70/30 splits, default vs tuned
+-- 20 random 70/30 splits; tuned = deeper trees + finer split percentiles
 let nSplits     = 20
 let trainFrac   = 0.7
 let tunedConfig = DT.defaultTreeConfig { DT.maxTreeDepth = 8, DT.percentiles = [0,5..100] }
-
-let accuracyFor cfg seed =
-        let (tr, te) = D.randomSplit (mkStdGen seed) trainFrac df
-            m  = DT.fitDecisionTree cfg (F.col @T.Text "variety") tr
-            sc = te |> D.derive "predicted" m
-            wc = sc |> D.derive "is_correct" (F.ifThenElse (F.eq (F.col @T.Text "variety") (F.col @T.Text "predicted")) (F.lit (1.0 :: Double)) (F.lit (0.0 :: Double)))
-        in D.mean (F.col @Double "is_correct") wc
-
-let seeds       = [1..nSplits]
-let defaultAccs = [accuracyFor DT.defaultTreeConfig s | s <- seeds]
-let tunedAccs   = [accuracyFor tunedConfig            s | s <- seeds]
-let diffs       = zipWith (-) tunedAccs defaultAccs
-
-let meanD xs   = sum xs / fromIntegral (length xs)
-let stddevD xs = let m = meanD xs in sqrt (sum [(x - m)^2 | x <- xs] / fromIntegral (length xs))
-let pct x      = show (fromIntegral (round (x * 10000)) / 100 :: Double) ++ "%"
-
-mapM_ putStrLn
-    [ "--- Monte Carlo CV (" ++ show nSplits ++ " random 70/30 splits) ---"
-    , "default config:"
-    , "  mean = " ++ pct (meanD defaultAccs) ++ "   std = " ++ pct (stddevD defaultAccs) ++ "   range = [" ++ pct (minimum defaultAccs) ++ ", " ++ pct (maximum defaultAccs) ++ "]"
-    , "tuned config (depth=8, percentiles every 5%):"
-    , "  mean = " ++ pct (meanD tunedAccs)   ++ "   std = " ++ pct (stddevD tunedAccs)   ++ "   range = [" ++ pct (minimum tunedAccs)   ++ ", " ++ pct (maximum tunedAccs)   ++ "]"
-    , ""
-    , "paired (tuned - default):  mean diff = " ++ pct (meanD diffs) ++ "   tuned wins " ++ show (length (filter (> 0) diffs)) ++ " / " ++ show nSplits ++ " splits"
-    ]
 ```
 
-> <!-- sabela:mime text/plain -->
-> --- Monte Carlo CV (20 random 70/30 splits) ---
-> default config:
->   mean = 93.47%   std = 4.2%   range = [84.62%, 100.0%]
-> tuned config (depth=8, percentiles every 5%):
->   mean = 94.31%   std = 2.76%   range = [89.13%, 100.0%]
-> 
-> paired (tuned - default):  mean diff = 0.84%   tuned wins 8 / 20 splits
+### Accuracy on one split
 
+For a given config and random seed, we split the data, fit a tree on the training rows, predict `variety` on the held-out rows, and return the fraction predicted correctly.
+```haskell
+let accuracyFor cfg seed =
+        let (tr, te) = D.randomSplit (mkStdGen seed) trainFrac df
+            model    = DT.fitDecisionTree cfg (F.col @T.Text "variety") tr
+            scored   = te
+                |> D.derive "predicted"  model
+                |> D.derive "is_correct"
+                       (F.ifThenElse
+                           (F.eq (F.col @T.Text "variety") (F.col @T.Text "predicted"))
+                           (F.lit (1.0 :: Double))
+                           (F.lit (0.0 :: Double)))
+        in D.mean (F.col @Double "is_correct") scored
+```
+
+### Run it across every split
+
+We score both configs on the same 20 seeds — so they face identical splits — and take the per-split difference, tuned minus default.
+```haskell
+let seeds       = [1 .. nSplits]
+let defaultAccs = map (accuracyFor DT.defaultTreeConfig) seeds
+let tunedAccs   = map (accuracyFor tunedConfig)          seeds
+let diffs       = zipWith (-) tunedAccs defaultAccs
+```
+
+### Results
+
+Mean, spread, and range of accuracy for each config, plus the paired difference — how often tuning actually won across the splits.
+```haskell
+import Text.Printf (printf)
+
+let mean   xs = sum xs / fromIntegral (length xs)
+let stddev xs = let m = mean xs in sqrt (mean [(x - m) ^ 2 | x <- xs])
+let pct    x  = printf "%.2f%%" (x * 100) :: String
+
+let summarise label accs =
+        printf "%s:\n  mean = %s   std = %s   range = [%s, %s]"
+            label (pct (mean accs)) (pct (stddev accs)) (pct (minimum accs)) (pct (maximum accs)) :: String
+
+putStrLn (printf "--- Monte Carlo CV (%d random 70/30 splits) ---" nSplits :: String)
+putStrLn (summarise "default config" defaultAccs)
+putStrLn (summarise "tuned config (depth=8, percentiles every 5%)" tunedAccs)
+putStrLn ""
+putStrLn (printf "paired (tuned - default):  mean diff = %s   tuned wins %d / %d splits"
+            (pct (mean diffs)) (length (filter (> 0) diffs)) nSplits :: String)
+```
 
 ```haskell
 import qualified DataFrame.Display.Web.Plot as Plot
@@ -293,7 +272,7 @@ Plot.HtmlPlot html <- Plot.line (Plot.mkLine "seed" ["default_acc", "tuned_acc"]
 displayHtml (T.unpack html)
 ```
 
-> <!-- sabela:mime text/html -->
+> <!-- scripths:mime text/html -->
 > <canvas id="chart_VBKxBOjZaLh9b6jvTpjXPl6d3rIunSdpOXOWAXKXV2V9OY8F7my" style="width:100%;max-width:600px;height:400px"></canvas>
 > <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/2.9.4/Chart.min.js"></script>
 > <script>
@@ -325,7 +304,6 @@ displayHtml (T.unpack html)
 > })}, 100);
 > </script>
 
-
 ```haskell
 let pts       = zip (D.columnAsList (F.col @Double "petal.length") df)
                     (D.columnAsList (F.col @Double "petal.width")  df)
@@ -346,7 +324,7 @@ let opts = defScatter
 sel <- display (scatterSelectWith "iris-petal-lasso" opts pts)
 ```
 
-> <!-- sabela:mime text/html -->
+> <!-- scripths:mime text/html -->
 > <div style='font-family:sans-serif'>
 > <canvas id='sc_25_iris-petal-lasso' width='560' height='360' style='border:1px solid #e2e2ea;border-radius:6px;cursor:crosshair;max-width:100%'></canvas>
 > <div style='color:#889;font-size:11px;margin-top:5px'>drag to lasso-select &middot; double-click to clear &middot; 150 points, 9 selected</div>
@@ -429,7 +407,6 @@ sel <- display (scatterSelectWith "iris-petal-lasso" opts pts)
 > </script>
 > </div>
 
-
 ```haskell
 import DataFrame.Operations.Subset (selectRows)
 
@@ -444,7 +421,7 @@ chosen |> D.toMarkdown'
        |> displayMarkdown
 ```
 
-> <!-- sabela:mime text/plain -->
+> <!-- scripths:mime text/plain -->
 > <!-- MIME:text/markdown -->
 > **9** of 150 flowers selected:
 > <!-- MIME:text/markdown -->
@@ -460,16 +437,12 @@ chosen |> D.toMarkdown'
 > | 6.3                    | 2.8                   | 5.1                    | 1.5                   | Virginica       |
 > | 6.0                    | 3.0                   | 4.8                    | 1.8                   | Virginica       |
 
-
-
 ## Confusion matrix
 
 The original example built a confusion matrix by hand. With a `DataFrame` we get
 it by grouping on the (actual, predicted) pair and counting. The diagonal
 (`variety == predicted`) holds the correct predictions; off-diagonal entries are
 the mistakes.
-
-
 
 ```haskell
 scored |> D.groupBy ["variety", "predicted"]
@@ -479,7 +452,7 @@ scored |> D.groupBy ["variety", "predicted"]
        |> displayMarkdown
 ```
 
-> <!-- sabela:mime text/markdown -->
+> <!-- scripths:mime text/markdown -->
 > | variety<br>Text | predicted<br>Text | count<br>Int |
 > | ----------------|-------------------|------------- |
 > | Versicolor      | Versicolor        | 14           |
@@ -487,8 +460,6 @@ scored |> D.groupBy ["variety", "predicted"]
 > | Setosa          | Versicolor        | 2            |
 > | Setosa          | Setosa            | 12           |
 > | Versicolor      | Virginica         | 4            |
-
-
 
 ## Conclusion
 
@@ -499,10 +470,9 @@ dataset like Iris, are pretty easy and efficient to run.
 :! cat CHANGELOG.md
 ```
 
-> <!-- sabela:mime text/plain -->
+> <!-- scripths:mime text/plain -->
 > # Revision history for sabela
 > 
 > ## 0.1.0.0 -- YYYY-mm-dd
 > 
 > * First version. Released on an unsuspecting world.
-

@@ -20,7 +20,7 @@ while IFS= read -r f; do
   if [ "$n" -gt "$LIMIT" ]; then
     printf '%6d  %s\n' "$n" "$f" >> "$tmp"
   fi
-done < <(git ls-files '*.hs' 'static/*.js')
+done < <(git ls-files '*.hs' 'static/src/*/js/*.js')
 
 if [ -s "$tmp" ]; then
   echo "Modules over the ${LIMIT}-line cap (see CLAUDE.md Conventions):" >&2

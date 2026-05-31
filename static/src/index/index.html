@@ -1,0 +1,254 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Sabela Notebook</title>
+    <link
+      rel="icon"
+      href="data:image/svg+xml,%3Csvg%20xmlns='http://www.w3.org/2000/svg'%20viewBox='0%200%2032%2032'%3E%3Crect%20width='32'%20height='32'%20rx='7'%20fill='%230066ff'/%3E%3Cpath%20d='M10%2026L19%206M14.5%2016.5L23%2026'%20stroke='%23fff'%20stroke-width='3'%20fill='none'%20stroke-linecap='round'%20stroke-linejoin='round'/%3E%3C/svg%3E"
+    />
+
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/codemirror.min.css" />
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/theme/nord.min.css" />
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/theme/idea.min.css" />
+    <link
+      rel="stylesheet"
+      href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/addon/hint/show-hint.min.css"
+    />
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.css" />
+    <script src="js/boot-theme.js"></script>
+    <link rel="stylesheet" href="css/01-base.css" />
+    <link rel="stylesheet" href="css/02-toolbar.css" />
+    <link rel="stylesheet" href="css/03-layout.css" />
+    <link rel="stylesheet" href="css/04-right-panel.css" />
+    <link rel="stylesheet" href="css/05-cells.css" />
+    <link rel="stylesheet" href="css/06-file-menu.css" />
+    <link rel="stylesheet" href="css/07-modals.css" />
+    <link rel="stylesheet" href="css/08-icons.css" />
+    <link rel="stylesheet" href="css/09-toolbar-extra.css" />
+    <link rel="stylesheet" href="css/10-command-palette.css" />
+    <link rel="stylesheet" href="css/11-panel-tweaks.css" />
+    <link rel="stylesheet" href="css/12-signature.css" />
+    <link rel="stylesheet" href="css/13-responsive.css" />
+  </head>
+  <body>
+    <!-- include: html/icons.svg -->
+    <!-- include: html/modals.html -->
+    <div class="toolbar">
+      <button class="icon-btn" id="btn-sidebar-toggle" onclick="toggleSidebar()" aria-label="Toggle file explorer">
+        <svg class="icon-svg"><use href="#i-menu" /></svg>
+      </button>
+      <span class="toolbar-title-wrap">
+        <span class="toolbar-title" id="toolbar-title">λ sabela</span>
+        <span class="dirty-dot" id="dirty-dot" title="Unsaved changes"></span>
+      </span>
+      <span class="spacer"></span>
+      <button class="primary" id="btn-run-all" onclick="runAll()" aria-label="Run all cells">
+        <svg class="icon-svg" style="vertical-align: -2px"><use href="#i-play" /></svg>
+        <span class="btn-label">Run all</span>
+      </button>
+      <button class="palette-trigger" id="btn-palette" onclick="openPalette()" aria-label="Open command palette">
+        <svg class="icon-svg"><use href="#i-search" /></svg>
+        <span class="palette-trigger-label">Search commands…</span>
+        <kbd id="kbd-palette">Ctrl+K</kbd>
+      </button>
+      <div class="toolbar-dropdown" id="overflow-menu">
+        <button class="icon-btn" onclick="toggleDropdown(this)" aria-label="More commands" title="More">
+          <svg class="icon-svg"><use href="#i-more" /></svg>
+        </button>
+        <div class="toolbar-dropdown-menu" id="overflow-menu-list"></div>
+      </div>
+      <button
+        class="icon-btn"
+        id="theme-toggle"
+        onclick="toggleTheme()"
+        title="Toggle theme"
+        aria-label="Toggle light/dark theme"
+      >
+        <svg class="icon-svg" id="theme-icon"><use href="#i-moon" /></svg>
+      </button>
+      <span class="save-indicator" id="save-indicator">saved ✓</span>
+      <span class="sse-dot" id="sse-dot" title="Connection status"></span>
+      <span class="status" id="status"></span>
+    </div>
+
+    <div class="main-layout">
+      <!-- Left sidebar: file explorer -->
+      <div class="sidebar" id="sidebar">
+        <div class="sidebar-header">
+          <span>files</span>
+          <button onclick="startNewFile()" title="New file" aria-label="New file">
+            <svg class="icon-svg small"><use href="#i-file-plus" /></svg>
+          </button>
+          <button onclick="startNewFolder()" title="New folder" aria-label="New folder">
+            <svg class="icon-svg small"><use href="#i-folder-plus" /></svg>
+          </button>
+          <button onclick="startUpload('.')" title="Upload files" aria-label="Upload files">
+            <svg class="icon-svg small"><use href="#i-upload" /></svg>
+          </button>
+          <button onclick="startImportUrl('.')" title="Import from URL" aria-label="Import from URL">
+            <svg class="icon-svg small"><use href="#i-link" /></svg>
+          </button>
+          <button onclick="collapseAllDirs()" title="Collapse all" aria-label="Collapse all folders">
+            <svg class="icon-svg small"><use href="#i-fold" /></svg>
+          </button>
+          <button onclick="refreshFiles()" title="Refresh" aria-label="Refresh file tree">
+            <svg class="icon-svg small"><use href="#i-refresh" /></svg>
+          </button>
+        </div>
+        <div class="sidebar-filter">
+          <input
+            type="text"
+            id="file-filter"
+            placeholder="filter files…"
+            autocomplete="off"
+            spellcheck="false"
+            oninput="applyFileFilter()"
+            aria-label="Filter files by name"
+          />
+        </div>
+        <div id="new-item-input" style="display: none"></div>
+        <div class="file-tree" id="file-tree"></div>
+      </div>
+
+      <!-- Notebook area -->
+      <div class="notebook-area" id="notebook-area">
+        <div class="notebook" id="notebook"></div>
+      </div>
+
+      <!-- Right panel: info + examples -->
+      <div class="right-panel collapsed" id="right-panel">
+        <div class="panel-tabs" role="tablist" aria-label="Panel tabs">
+          <button
+            class="panel-tab active"
+            role="tab"
+            data-tab="info"
+            onclick="togglePanel('info')"
+            aria-selected="true"
+            aria-controls="panel-info"
+          >
+            <svg class="icon-svg small"><use href="#i-search" /></svg>
+            Info
+          </button>
+          <button
+            class="panel-tab"
+            role="tab"
+            data-tab="examples"
+            onclick="togglePanel('examples')"
+            aria-selected="false"
+            aria-controls="panel-examples"
+          >
+            <svg class="icon-svg small"><use href="#i-book-open" /></svg>
+            Examples
+          </button>
+          <button
+            class="panel-tab"
+            role="tab"
+            data-tab="chat"
+            onclick="togglePanel('chat')"
+            aria-selected="false"
+            aria-controls="panel-chat"
+          >
+            <svg class="icon-svg small"><use href="#i-message" /></svg>
+            Chat
+          </button>
+          <button class="panel-tab-close" onclick="closePanel()" aria-label="Close panel" title="Close panel">×</button>
+        </div>
+        <div class="panel-content" id="panel-info" role="tabpanel" aria-labelledby="tab-info" style="display: block">
+          <div class="info-search">
+            <input
+              type="text"
+              id="info-input"
+              placeholder="Type name, e.g. map"
+              aria-label="Haskell identifier to look up"
+              onkeydown="if(event.key==='Enter')lookupInfo()"
+            />
+            <button onclick="lookupInfo()" aria-label="Look up identifier">lookup</button>
+          </div>
+          <div class="info-content" id="info-result">
+            <div style="color: var(--fg-dim)">
+              Type a Haskell identifier and press Enter, or press
+              <kbd id="kbd-lookup" style="background: var(--bg-cell); padding: 2px 6px; border-radius: 3px">Ctrl+I</kbd>
+              in a code cell to look up the word under cursor.
+            </div>
+          </div>
+        </div>
+        <div
+          class="panel-content"
+          id="panel-examples"
+          role="tabpanel"
+          aria-labelledby="tab-examples"
+          style="display: none"
+        ></div>
+        <div
+          class="panel-content"
+          id="panel-chat"
+          role="tabpanel"
+          aria-labelledby="tab-chat"
+          style="display: none; flex-direction: column; padding: 0"
+        >
+          <div class="chat-header">
+            <span class="chat-context" id="chat-context"></span>
+            <span class="chat-usage" id="chat-usage" title="Session token usage (cache-read in parens)"></span>
+            <button
+              class="chat-new-btn"
+              id="chat-model-btn"
+              onclick="openAIModal()"
+              title="Change model or API key"
+              style="margin-right: 6px"
+            >
+              model
+            </button>
+            <button class="chat-new-btn" onclick="newChatConversation()" title="New conversation">New</button>
+          </div>
+          <div class="chat-messages" id="chat-messages">
+            <div class="chat-msg assistant" style="color: var(--fg-dim); font-size: 11px">
+              Ask me about your notebook — I can read cells, suggest edits, run code, and experiment in a scratchpad.
+            </div>
+          </div>
+          <div class="chat-input-area">
+            <textarea id="chat-input" placeholder="Message AI..." rows="3"></textarea>
+            <div class="chat-input-actions">
+              <button id="chat-send" onclick="sendChatMessage()">Send</button>
+              <button id="chat-cancel" onclick="cancelChat()" style="display: none">Cancel</button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/codemirror.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/mode/haskell/haskell.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/mode/python/python.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/addon/hint/show-hint.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/marked/12.0.0/marked.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/contrib/auto-render.min.js"></script>
+    <script src="js/01-state.js"></script>
+    <script src="js/02-api.js"></script>
+    <script src="js/03-toolbar.js"></script>
+    <script src="js/04-sse.js"></script>
+    <script src="js/05-editor.js"></script>
+    <script src="js/06-info-panel.js"></script>
+    <script src="js/07-output.js"></script>
+    <script src="js/08-file-explorer.js"></script>
+    <script src="js/09-file-preview.js"></script>
+    <script src="js/10-file-io.js"></script>
+    <script src="js/11-file-context-menu.js"></script>
+    <script src="js/12-modals.js"></script>
+    <script src="js/13-shares.js"></script>
+    <script src="js/14-save-panel.js"></script>
+    <script src="js/15-examples.js"></script>
+    <script src="js/16-render.js"></script>
+    <script src="js/17-render-prose.js"></script>
+    <script src="js/18-actions.js"></script>
+    <script src="js/19-theme.js"></script>
+    <script src="js/20-command-palette.js"></script>
+    <script src="js/21-shortcuts.js"></script>
+    <script src="js/22-widget-bridge.js"></script>
+    <script src="js/23-chat-modal.js"></script>
+    <script src="js/24-chat.js"></script>
+    <script src="js/25-init.js"></script>
+  </body>
+</html>

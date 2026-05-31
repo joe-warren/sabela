@@ -1,0 +1,137 @@
+<!-- Command palette -->
+<div
+  id="palette-overlay"
+  class="palette-overlay"
+  onclick="if(event.target===this)closePalette()"
+  role="dialog"
+  aria-label="Command palette"
+>
+  <div class="palette">
+    <div class="palette-input-row">
+      <svg class="icon-svg"><use href="#i-search" /></svg>
+      <input id="palette-input" type="text" placeholder="Type a command…" autocomplete="off" spellcheck="false" />
+    </div>
+    <div id="palette-list" class="palette-list" role="listbox"></div>
+  </div>
+</div>
+
+<div
+  id="ai-modal-overlay"
+  class="ai-modal-overlay"
+  style="display: none"
+  onclick="if(event.target===this)closeAIModal()"
+>
+  <div class="ai-modal" role="dialog" aria-label="AI settings">
+    <h2 id="ai-modal-title">Connect to AI</h2>
+    <p id="ai-modal-desc">
+      Enter your Anthropic API key to enable the AI assistant. Your key is stored in your workspace and never sent
+      anywhere except Anthropic's API.
+    </p>
+    <label for="ai-modal-key">
+      API key
+      <span id="ai-modal-key-hint" style="color: var(--fg-dim)"></span>
+    </label>
+    <input type="password" id="ai-modal-key" placeholder="sk-ant-..." autocomplete="off" />
+    <label for="ai-modal-model">Model</label>
+    <select id="ai-modal-model" onchange="onModelChange()"></select>
+    <div class="model-desc" id="ai-modal-model-desc"></div>
+    <div class="custom-model" id="ai-modal-custom-wrap">
+      <label for="ai-modal-custom">Custom model ID</label>
+      <input type="text" id="ai-modal-custom" placeholder="claude-..." />
+    </div>
+    <div class="ai-modal-actions">
+      <button class="secondary" onclick="closeAIModal()">Cancel</button>
+      <button class="primary" onclick="submitAIModal()">Save</button>
+    </div>
+    <div class="error" id="ai-modal-error"></div>
+  </div>
+</div>
+
+<!-- Public shares (Phase 3a) -->
+<div
+  id="shares-modal-overlay"
+  class="ai-modal-overlay"
+  style="display: none"
+  onclick="if(event.target===this)closeSharesModal()"
+>
+  <div class="ai-modal shares-modal" role="dialog" aria-labelledby="shares-modal-title" aria-modal="true">
+    <h2 id="shares-modal-title">Public shares</h2>
+    <p>
+      A published dashboard or slideshow is served at a public URL that needs no sign-in. Viewers see the saved outputs
+      only — they can't run your code or reach your other notebooks.
+    </p>
+    <div id="shares-modal-list" class="shares-list">Loading…</div>
+    <div class="ai-modal-actions">
+      <button class="secondary" onclick="closeSharesModal()">Close</button>
+    </div>
+    <div class="shares-error" id="shares-modal-error"></div>
+  </div>
+</div>
+
+<!-- Generic input modal (rename, new file, new folder) -->
+<div
+  id="input-modal-overlay"
+  class="ai-modal-overlay"
+  style="display: none"
+  onclick="if(event.target===this)closeInputModal(null)"
+>
+  <div class="ai-modal input-modal" role="dialog" aria-labelledby="input-modal-title" aria-modal="true">
+    <h2 id="input-modal-title">Title</h2>
+    <p id="input-modal-message" class="modal-message" style="display: none"></p>
+    <label class="field-label" for="input-modal-field" id="input-modal-label">Name</label>
+    <input type="text" id="input-modal-field" autocomplete="off" spellcheck="false" />
+    <div class="modal-error" id="input-modal-error"></div>
+    <div class="ai-modal-actions">
+      <button class="secondary" id="input-modal-cancel" onclick="closeInputModal(null)">Cancel</button>
+      <button class="primary" id="input-modal-ok">OK</button>
+    </div>
+  </div>
+</div>
+
+<!-- Confirm modal -->
+<div
+  id="confirm-modal-overlay"
+  class="ai-modal-overlay"
+  style="display: none"
+  onclick="if(event.target===this)closeConfirmModal(false)"
+>
+  <div class="ai-modal input-modal" role="alertdialog" aria-labelledby="confirm-modal-title" aria-modal="true">
+    <h2 id="confirm-modal-title">Confirm</h2>
+    <p id="confirm-modal-message" class="modal-message">Are you sure?</p>
+    <div class="ai-modal-actions">
+      <button class="secondary" id="confirm-modal-cancel" onclick="closeConfirmModal(false)">Cancel</button>
+      <button class="primary" id="confirm-modal-ok">Confirm</button>
+    </div>
+  </div>
+</div>
+
+<!-- Import-from-URL modal -->
+<div
+  id="import-url-overlay"
+  class="ai-modal-overlay"
+  style="display: none"
+  onclick="if(event.target===this)closeImportUrl(null)"
+>
+  <div class="ai-modal input-modal" role="dialog" aria-labelledby="import-url-title" aria-modal="true">
+    <h2 id="import-url-title">Import from URL</h2>
+    <p class="modal-message">Paste a notebook/file URL. GitHub and gist links are fetched as raw.</p>
+    <label class="field-label" for="import-url-field">URL</label>
+    <input type="text" id="import-url-field" placeholder="https://…" autocomplete="off" spellcheck="false" />
+    <label class="field-label" for="import-url-name">Save as</label>
+    <input type="text" id="import-url-name" placeholder="filename.md" autocomplete="off" spellcheck="false" />
+    <div class="modal-error" id="import-url-error"></div>
+    <div class="ai-modal-actions">
+      <button class="secondary" id="import-url-cancel" onclick="closeImportUrl(null)">Cancel</button>
+      <button class="primary" id="import-url-ok">Import</button>
+    </div>
+  </div>
+</div>
+
+<div id="build-modal" class="build-modal" style="display: none" role="dialog" aria-label="Build log">
+  <div class="build-modal-header">
+    <span class="build-modal-title" id="build-modal-title">Building…</span>
+    <span class="build-spinner" aria-hidden="true"></span>
+    <button class="build-modal-close" onclick="closeBuildModal()" aria-label="Close build log">×</button>
+  </div>
+  <div class="build-modal-body" id="build-log"></div>
+</div>

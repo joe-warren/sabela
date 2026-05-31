@@ -1,0 +1,75 @@
+/* ── Signature motion: "sabela" = to respond ──────────────────────
+     A code cell emits an amber ripple down its spine the instant a
+     result lands, so reactive (upstream-driven) re-runs visibly cascade. */
+@keyframes cell-respond {
+  0% {
+    box-shadow: inset 3px 0 0 -1px rgba(var(--accent-rgb), 0);
+  }
+  18% {
+    box-shadow:
+      inset 3px 0 0 0 var(--accent),
+      -2px 0 24px -6px rgba(var(--accent-rgb), 0.6);
+  }
+  100% {
+    box-shadow: inset 3px 0 0 -1px rgba(var(--accent-rgb), 0);
+  }
+}
+.cell.responding {
+  animation: cell-respond 1.05s cubic-bezier(0.22, 0.61, 0.36, 1);
+}
+
+/* One-time staggered reveal on first paint (gated by .intro, which the
+     renderer adds only on the initial load — never on reactive re-renders). */
+@keyframes cell-rise {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+.notebook.intro > * {
+  animation: cell-rise 0.5s both cubic-bezier(0.22, 0.61, 0.36, 1);
+}
+.notebook.intro > *:nth-child(1) {
+  animation-delay: 0.03s;
+}
+.notebook.intro > *:nth-child(2) {
+  animation-delay: 0.07s;
+}
+.notebook.intro > *:nth-child(3) {
+  animation-delay: 0.11s;
+}
+.notebook.intro > *:nth-child(4) {
+  animation-delay: 0.15s;
+}
+.notebook.intro > *:nth-child(5) {
+  animation-delay: 0.19s;
+}
+.notebook.intro > *:nth-child(6) {
+  animation-delay: 0.23s;
+}
+.notebook.intro > *:nth-child(7) {
+  animation-delay: 0.27s;
+}
+.notebook.intro > *:nth-child(8) {
+  animation-delay: 0.31s;
+}
+.notebook.intro > *:nth-child(9) {
+  animation-delay: 0.35s;
+}
+.notebook.intro > *:nth-child(10) {
+  animation-delay: 0.39s;
+}
+.notebook.intro > *:nth-child(n + 11) {
+  animation-delay: 0.42s;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .cell.responding,
+  .notebook.intro > * {
+    animation: none !important;
+  }
+}

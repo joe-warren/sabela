@@ -1,0 +1,142 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Sabela Slideshow</title>
+    <link
+      rel="icon"
+      href="data:image/svg+xml,%3Csvg%20xmlns='http://www.w3.org/2000/svg'%20viewBox='0%200%2032%2032'%3E%3Crect%20width='32'%20height='32'%20rx='7'%20fill='%230066ff'/%3E%3Cpath%20d='M10%2026L19%206M14.5%2016.5L23%2026'%20stroke='%23fff'%20stroke-width='3'%20fill='none'%20stroke-linecap='round'%20stroke-linejoin='round'/%3E%3C/svg%3E"
+    />
+
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.css" />
+    <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@highlightjs/cdn-assets@11.9.0/highlight.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@highlightjs/cdn-assets@11.9.0/languages/haskell.min.js"></script>
+    <script src="js/boot.js"></script>
+    <link rel="stylesheet" href="css/01-base.css" />
+    <link rel="stylesheet" href="css/02-header.css" />
+    <link rel="stylesheet" href="css/03-deck.css" />
+    <link rel="stylesheet" href="css/04-live.css" />
+    <link rel="stylesheet" href="css/05-syntax.css" />
+    <link rel="stylesheet" href="css/06-prose.css" />
+    <link rel="stylesheet" href="css/07-output.css" />
+    <link rel="stylesheet" href="css/08-footer.css" />
+    <link rel="stylesheet" href="css/09-status.css" />
+    <script src="js/head-extra.js"></script>
+  </head>
+  <body>
+    <svg width="0" height="0" style="position: absolute" aria-hidden="true">
+      <defs>
+        <symbol id="i-sun" viewBox="0 0 24 24">
+          <circle cx="12" cy="12" r="4" />
+          <line x1="12" y1="2" x2="12" y2="4" />
+          <line x1="12" y1="20" x2="12" y2="22" />
+          <line x1="4.93" y1="4.93" x2="6.34" y2="6.34" />
+          <line x1="17.66" y1="17.66" x2="19.07" y2="19.07" />
+          <line x1="2" y1="12" x2="4" y2="12" />
+          <line x1="20" y1="12" x2="22" y2="12" />
+          <line x1="4.93" y1="19.07" x2="6.34" y2="17.66" />
+          <line x1="17.66" y1="6.34" x2="19.07" y2="4.93" />
+        </symbol>
+        <symbol id="i-moon" viewBox="0 0 24 24" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z" />
+        </symbol>
+        <symbol id="i-prev" viewBox="0 0 24 24"><polyline points="15 6 9 12 15 18" /></symbol>
+        <symbol id="i-next" viewBox="0 0 24 24"><polyline points="9 6 15 12 9 18" /></symbol>
+        <symbol id="i-fs" viewBox="0 0 24 24">
+          <path d="M8 3H5a2 2 0 0 0-2 2v3" />
+          <path d="M16 3h3a2 2 0 0 1 2 2v3" />
+          <path d="M8 21H5a2 2 0 0 1-2-2v-3" />
+          <path d="M16 21h3a2 2 0 0 0 2-2v-3" />
+        </symbol>
+        <symbol id="i-code" viewBox="0 0 24 24">
+          <polyline points="16 18 22 12 16 6" />
+          <polyline points="8 6 2 12 8 18" />
+        </symbol>
+        <symbol id="i-edit" viewBox="0 0 24 24">
+          <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7" />
+          <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z" />
+        </symbol>
+        <symbol id="i-run" viewBox="0 0 24 24">
+          <polygon points="6 4 20 12 6 20 6 4" fill="currentColor" stroke="none" />
+        </symbol>
+      </defs>
+    </svg>
+
+    <div class="slide-header">
+      <h1 id="deck-title">Slideshow</h1>
+      <div class="header-actions" id="header-actions">
+        <button id="code-toggle" onclick="toggleCode()" title="Show source code (c)">
+          <svg class="icon-svg" style="vertical-align: -3px; margin-right: 4px"><use href="#i-code" /></svg>
+          Code
+        </button>
+        <button id="edit-toggle" onclick="toggleEdit()" title="Edit slides live (e)">
+          <svg class="icon-svg" style="vertical-align: -3px; margin-right: 4px"><use href="#i-edit" /></svg>
+          Edit
+        </button>
+        <div class="fontsize-group" role="group" aria-label="Slide font size">
+          <button id="fs-dec" onclick="bumpZoom(-1)" title="Decrease font (−)" aria-label="Decrease font size">
+            A&minus;
+          </button>
+          <button id="fs-pct" onclick="resetZoom()" title="Reset font size (0)" aria-label="Reset font size">
+            100%
+          </button>
+          <button id="fs-inc" onclick="bumpZoom(1)" title="Increase font (+)" aria-label="Increase font size">
+            A+
+          </button>
+        </div>
+        <a href="/" id="edit-link">Edit Notebook</a>
+        <button onclick="exportSlideshow()" id="export-btn">Export HTML</button>
+        <button
+          class="icon-btn"
+          id="fs-toggle"
+          onclick="toggleFullscreen()"
+          title="Fullscreen (f)"
+          aria-label="Fullscreen"
+        >
+          <svg class="icon-svg"><use href="#i-fs" /></svg>
+        </button>
+        <button
+          class="icon-btn"
+          id="theme-toggle"
+          onclick="toggleTheme()"
+          title="Toggle light/dark theme"
+          aria-label="Toggle theme"
+        >
+          <svg class="icon-svg" id="theme-icon"><use href="#i-moon" /></svg>
+        </button>
+      </div>
+    </div>
+
+    <div class="progress-track"><div class="progress-fill" id="progress-fill"></div></div>
+
+    <div class="deck" id="deck"></div>
+
+    <div class="slide-nav">
+      <div class="nav-group">
+        <button id="nav-prev" onclick="prev()" title="Previous (←)" aria-label="Previous slide">
+          <svg class="icon-svg"><use href="#i-prev" /></svg>
+        </button>
+        <span class="slide-counter" id="slide-counter">0 / 0</span>
+        <button id="nav-next" onclick="next()" title="Next (→)" aria-label="Next slide">
+          <svg class="icon-svg"><use href="#i-next" /></svg>
+        </button>
+      </div>
+    </div>
+
+    <div class="slide-status" id="status-indicator"></div>
+
+    <script src="js/01-app.js"></script>
+    <script src="js/02-sandbox.js"></script>
+    <script src="js/03-init.js"></script>
+    <script src="js/04-deck.js"></script>
+    <script src="js/05-render-slide.js"></script>
+    <script src="js/06-editors.js"></script>
+    <script src="js/07-output.js"></script>
+    <script src="js/08-navigation.js"></script>
+    <script src="js/09-keyboard.js"></script>
+    <script src="js/10-live.js"></script>
+  </body>
+</html>

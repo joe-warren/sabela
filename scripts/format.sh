@@ -10,15 +10,19 @@
 #
 # The formatter set is intentionally small:
 #   - fourmolu on every tracked *.hs (config: ./fourmolu.yaml).
-#   - prettier on tracked static/*.{html,js,mjs,css} (config: ./.prettierrc.json).
+#   - prettier on the modular frontend sources under static/src/ and the
+#     build tooling in tools/ (config: ./.prettierrc.json).
 #
 # Both tools are bootstrapped on first run if they aren't already on $PATH —
 # fourmolu via cabal, prettier via npx (so no global Node install is needed).
 #
-# Notes on prettier's HTML output:
-#   '.html' files in static/ embed long <script>/<style> blocks. Prettier
-#   reformats those embedded sections. If you only want Haskell formatting in
-#   a quick checkpoint, pass --haskell-only.
+# Frontend layout:
+#   The served pages (static/index.html, dashboard.html, slideshow.html) are
+#   GENERATED build artifacts — prettier never touches them. The editable
+#   sources are the css/js/html partials under static/src/<page>/, which the
+#   bundler (tools/build-frontend.mjs) inlines back into the served pages.
+#   This script formats the partials and then keeps the bundles in sync
+#   (--check verifies they are up to date instead of rewriting them).
 
 set -euo pipefail
 
@@ -80,30 +84,33 @@ run_fourmolu() {
 # ---------------------------------------------------------------------------
 
 run_prettier() {
-    local files
-    files=$(git ls-files \
-        'static/*.html' 'static/*.js' 'static/*.mjs' 'static/*.css')
-    if [[ -z "$files" ]]; then
-        echo "[format] no tracked frontend files; skipping prettier"
-        return 0
-    fi
-
     if ! command -v npx >/dev/null 2>&1; then
         echo "[format] npx not found — install Node.js to enable prettier" >&2
         return 1
     fi
+
+    # The editable frontend sources (partials + shells) and the JS tooling.
+    # Generated bundles (static/*.html) are excluded — they are rebuilt below.
+    local globs=(
+        'static/src/**/*.html'
+        'static/src/**/*.js'
+        'static/src/**/*.css'
+        'tools/*.mjs'
+    )
 
     # --yes accepts the prettier download on first run without an interactive
     # prompt; the binary is then cached for subsequent invocations.
     local prettier_args=(--yes --package=prettier@3.3.3 -- prettier)
     if [[ "$MODE" == "check" ]]; then
         echo "[format] npx prettier --check"
-        # shellcheck disable=SC2086
-        npx "${prettier_args[@]}" --check $files
+        npx "${prettier_args[@]}" --check "${globs[@]}"
+        echo "[format] node tools/build-frontend.mjs --check"
+        node tools/build-frontend.mjs --check
     else
         echo "[format] npx prettier --write"
-        # shellcheck disable=SC2086
-        npx "${prettier_args[@]}" --write $files
+        npx "${prettier_args[@]}" --write "${globs[@]}"
+        echo "[format] node tools/build-frontend.mjs"
+        node tools/build-frontend.mjs
     fi
 }
 

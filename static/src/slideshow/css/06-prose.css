@@ -1,0 +1,136 @@
+/* ── Prose slides ──────────────────────────── */
+.prose h1 {
+  font-size: 42px;
+  font-weight: 700;
+  color: var(--fg-heading);
+  margin-bottom: 18px;
+  line-height: 1.2;
+}
+.prose h2 {
+  font-size: 32px;
+  font-weight: 600;
+  color: var(--fg-heading);
+  margin-bottom: 14px;
+  line-height: 1.25;
+}
+.prose h3 {
+  font-size: 24px;
+  font-weight: 600;
+  color: var(--fg-heading);
+  margin-bottom: 10px;
+}
+.prose p {
+  font-size: 19px;
+  margin-bottom: 16px;
+}
+.prose ul,
+.prose ol {
+  font-size: 19px;
+}
+/* padding-left (not margin-left) so nested lists compound and markers
+     have room after the global "* { padding:0 }" reset. */
+.prose ul,
+.prose ol,
+.slide-output .mime-markdown ul,
+.slide-output .mime-markdown ol {
+  margin: 0 0 16px;
+  padding-left: 1.5em;
+}
+.prose li,
+.slide-output .mime-markdown li {
+  margin-bottom: 6px;
+}
+.prose li > ul,
+.prose li > ol,
+.slide-output .mime-markdown li > ul,
+.slide-output .mime-markdown li > ol {
+  margin: 4px 0 6px;
+}
+.prose ul,
+.slide-output .mime-markdown ul {
+  list-style: disc;
+}
+.prose ul ul,
+.slide-output .mime-markdown ul ul {
+  list-style: circle;
+}
+.prose ul ul ul,
+.slide-output .mime-markdown ul ul ul {
+  list-style: square;
+}
+.prose ol,
+.slide-output .mime-markdown ol {
+  list-style: decimal;
+}
+.prose a {
+  color: var(--accent);
+}
+.prose code {
+  font-family: var(--font-mono);
+  font-size: 0.88em;
+  background: var(--bg-muted);
+  padding: 2px 6px;
+  border-radius: 4px;
+}
+.prose pre {
+  font-family: var(--font-mono);
+  font-size: 15px;
+  background: var(--bg-muted);
+  padding: 16px 20px;
+  border-radius: var(--radius);
+  overflow-x: auto;
+  margin-bottom: 16px;
+}
+.prose pre code {
+  background: none;
+  padding: 0;
+  font-size: inherit;
+}
+.prose blockquote {
+  border-left: 3px solid var(--accent);
+  padding: 8px 18px;
+  color: var(--fg-dim);
+  margin-bottom: 16px;
+  font-size: 19px;
+}
+.prose img {
+  max-width: 100%;
+}
+.prose table,
+.slide-output .mime-markdown table {
+  border-collapse: separate;
+  border-spacing: 0;
+  width: 100%;
+  margin: 16px 0;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  overflow: hidden;
+  font-size: 15px;
+  box-shadow: var(--shadow);
+  background: var(--bg-card);
+}
+.prose th,
+.prose td,
+.slide-output .mime-markdown th,
+.slide-output .mime-markdown td {
+  padding: 10px 14px;
+  text-align: left;
+  border-bottom: 1px solid var(--border-light);
+  font-variant-numeric: tabular-nums;
+}
+.prose tr:last-child td,
+.slide-output .mime-markdown tr:last-child td {
+  border-bottom: none;
+}
+.prose th,
+.slide-output .mime-markdown th {
+  background: var(--bg-muted);
+  color: var(--fg-heading);
+  font-weight: 600;
+  font-size: 14px;
+  border-bottom: 1px solid var(--border);
+}
+.prose tr:nth-child(even) td,
+.slide-output .mime-markdown tr:nth-child(even) td {
+  background: rgba(var(--accent-rgb), 0.04);
+}

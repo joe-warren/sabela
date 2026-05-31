@@ -1,0 +1,62 @@
+/* ── Progress bar ──────────────────────────── */
+.progress-track {
+  flex: 0 0 auto;
+  height: 3px;
+  background: var(--border-light);
+}
+.progress-fill {
+  height: 100%;
+  background: var(--accent);
+  width: 0%;
+  transition: width 0.25s ease;
+}
+
+/* ── Deck ──────────────────────────────────── */
+.deck {
+  flex: 1 1 auto;
+  position: relative;
+  overflow: hidden;
+  --slide-zoom: 1;
+}
+.slide {
+  position: absolute;
+  inset: 0;
+  display: none;
+  overflow: auto;
+  padding: 48px 56px 80px;
+}
+.slide.active {
+  display: flex;
+}
+.slide-inner {
+  margin: auto; /* centers when small, scrolls when large */
+  width: 100%;
+  max-width: 900px;
+  zoom: var(--slide-zoom, 1);
+}
+.deck.show-code .slide.has-code .slide-inner {
+  max-width: 1500px;
+  display: grid;
+  grid-template-columns: minmax(0, 0.85fr) minmax(0, 1.15fr);
+  gap: 36px;
+  align-items: start;
+}
+.slide-code {
+  display: none;
+}
+.deck.show-code .slide.has-code .slide-code {
+  display: block;
+}
+.slide-code pre {
+  font-family: var(--font-mono);
+  font-size: 14px;
+  line-height: 1.6;
+  background: var(--bg-card);
+  color: var(--fg);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 18px 20px;
+  overflow-x: auto;
+  white-space: pre;
+  tab-size: 2;
+}

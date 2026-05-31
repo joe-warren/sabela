@@ -1,0 +1,87 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Sabela Dashboard</title>
+    <link
+      rel="icon"
+      href="data:image/svg+xml,%3Csvg%20xmlns='http://www.w3.org/2000/svg'%20viewBox='0%200%2032%2032'%3E%3Crect%20width='32'%20height='32'%20rx='7'%20fill='%230066ff'/%3E%3Cpath%20d='M10%2026L19%206M14.5%2016.5L23%2026'%20stroke='%23fff'%20stroke-width='3'%20fill='none'%20stroke-linecap='round'%20stroke-linejoin='round'/%3E%3C/svg%3E"
+    />
+
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.css" />
+    <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@highlightjs/cdn-assets@11.9.0/highlight.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@highlightjs/cdn-assets@11.9.0/languages/haskell.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@highlightjs/cdn-assets@11.9.0/languages/python.min.js"></script>
+    <script src="js/boot.js"></script>
+    <link rel="stylesheet" href="css/01-base.css" />
+    <link rel="stylesheet" href="css/02-code.css" />
+    <link rel="stylesheet" href="css/03-header.css" />
+    <link rel="stylesheet" href="css/04-content.css" />
+    <link rel="stylesheet" href="css/05-tables.css" />
+    <link rel="stylesheet" href="css/06-outputs.css" />
+    <link rel="stylesheet" href="css/07-error-status.css" />
+    <link rel="stylesheet" href="css/08-print.css" />
+    <script src="js/head-extra.js"></script>
+  </head>
+  <body>
+    <svg width="0" height="0" style="position: absolute" aria-hidden="true">
+      <defs>
+        <symbol id="i-sun" viewBox="0 0 24 24">
+          <circle cx="12" cy="12" r="4" />
+          <line x1="12" y1="2" x2="12" y2="4" />
+          <line x1="12" y1="20" x2="12" y2="22" />
+          <line x1="4.93" y1="4.93" x2="6.34" y2="6.34" />
+          <line x1="17.66" y1="17.66" x2="19.07" y2="19.07" />
+          <line x1="2" y1="12" x2="4" y2="12" />
+          <line x1="20" y1="12" x2="22" y2="12" />
+          <line x1="4.93" y1="19.07" x2="6.34" y2="17.66" />
+          <line x1="17.66" y1="6.34" x2="19.07" y2="4.93" />
+        </symbol>
+        <symbol id="i-moon" viewBox="0 0 24 24" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z" />
+        </symbol>
+      </defs>
+    </svg>
+
+    <div class="dashboard-header">
+      <h1 id="dashboard-title">Dashboard</h1>
+      <div class="header-actions" id="header-actions">
+        <a href="/" id="edit-link">Edit Notebook</a>
+        <button onclick="exportDashboard()" id="export-btn">Export HTML</button>
+        <button
+          onclick="printToPdf()"
+          id="pdf-btn"
+          title='Print this page to PDF — use your browser&apos;s "Save as PDF" destination'
+        >
+          Save as PDF
+        </button>
+        <button
+          class="icon-btn"
+          id="theme-toggle"
+          onclick="toggleTheme()"
+          title="Toggle light/dark theme"
+          aria-label="Toggle theme"
+        >
+          <svg class="icon-svg" id="theme-icon"><use href="#i-moon" /></svg>
+        </button>
+      </div>
+    </div>
+
+    <main class="dashboard-main">
+      <div class="dashboard-content" id="main-content"></div>
+    </main>
+
+    <div class="dash-status" id="status-indicator"></div>
+
+    <script src="js/01-app.js"></script>
+    <script src="js/02-sandbox.js"></script>
+    <script src="js/03-init.js"></script>
+    <script src="js/04-print.js"></script>
+    <script src="js/05-render.js"></script>
+    <script src="js/06-render-output.js"></script>
+    <script src="js/07-live.js"></script>
+  </body>
+</html>

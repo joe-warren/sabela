@@ -1,0 +1,149 @@
+// ── File explorer ────────────────────────────────────────────────
+// Which folders are open in the explorer. Persisted to localStorage so the
+// tree comes back the way it was left after a reload. '' is the root.
+const EXPANDED_DIRS_KEY = 'sabela:expandedDirs';
+function loadExpandedDirs() {
+  try {
+    const raw = localStorage.getItem(EXPANDED_DIRS_KEY);
+    if (raw) return new Set(['', ...JSON.parse(raw)]);
+  } catch (e) {}
+  return new Set(['']);
+}
+function persistExpandedDirs() {
+  try {
+    localStorage.setItem(
+      EXPANDED_DIRS_KEY,
+      JSON.stringify([...expandedDirs].filter((p) => p !== ''))
+    );
+  } catch (e) {}
+}
+const expandedDirs = loadExpandedDirs();
+
+function collapseAllDirs() {
+  expandedDirs.clear();
+  expandedDirs.add('');
+  persistExpandedDirs();
+  refreshFiles();
+}
+
+// Live-filter the rendered tree by filename. Limitation: only the
+// currently loaded (expanded) rows are filtered; collapsed folders aren't
+// fetched just to search them.
+function applyFileFilter() {
+  const q = (document.getElementById('file-filter').value || '').trim().toLowerCase();
+  const rows = document.getElementById('file-tree').querySelectorAll('.file-entry');
+  rows.forEach((row) => {
+    const name = (row.dataset.name || '').toLowerCase();
+    let show = !q || name.includes(q);
+    if (q && !show && row.dataset.isDir === '1') {
+      const child = row.nextElementSibling;
+      show = !!(
+        child &&
+        Array.from(child.querySelectorAll('.file-entry')).some((r) =>
+          (r.dataset.name || '').toLowerCase().includes(q)
+        )
+      );
+    }
+    row.style.display = show ? '' : 'none';
+  });
+}
+
+function toggleSidebar() {
+  document.getElementById('sidebar').classList.toggle('collapsed');
+}
+
+async function loadFileTree(path, container, depth) {
+  try {
+    const entries = await api('GET', 'files?path=' + encodeURIComponent(path || '.'));
+    container.innerHTML = '';
+    for (const entry of entries) {
+      // Skip hidden files
+      if (entry.feName.startsWith('.')) continue;
+      const row = document.createElement('div');
+      row.className = 'file-entry';
+      row.dataset.path = entry.fePath;
+      row.dataset.name = entry.feName;
+      row.dataset.isDir = entry.feIsDir ? '1' : '';
+      if (notebook && notebook.nbTitle === entry.fePath) row.classList.add('active');
+
+      const indent = document.createElement('span');
+      indent.className = 'file-indent';
+      indent.style.width = depth * 14 + 'px';
+      row.appendChild(indent);
+
+      const icon = document.createElement('span');
+      icon.className = 'icon';
+      if (entry.feIsDir) {
+        icon.className += ' dir';
+        icon.textContent = expandedDirs.has(entry.fePath) ? '▾' : '▸';
+      } else {
+        const ext = entry.feName.split('.').pop();
+        if (ext === 'md') {
+          icon.className += ' md';
+          icon.textContent = '◇';
+        } else if (ext === 'hs') {
+          icon.className += ' hs';
+          icon.textContent = 'λ';
+        } else {
+          icon.className += ' file';
+          icon.textContent = '·';
+        }
+      }
+      row.appendChild(icon);
+
+      const name = document.createElement('span');
+      name.className = 'name';
+      name.textContent = entry.feName;
+      row.appendChild(name);
+
+      if (entry.feIsDir) {
+        const childContainer = document.createElement('div');
+        row.onclick = async (e) => {
+          e.stopPropagation();
+          if (expandedDirs.has(entry.fePath)) {
+            expandedDirs.delete(entry.fePath);
+            childContainer.innerHTML = '';
+            icon.textContent = '▸';
+          } else {
+            expandedDirs.add(entry.fePath);
+            icon.textContent = '▾';
+            await loadFileTree(entry.fePath, childContainer, depth + 1);
+          }
+          persistExpandedDirs();
+        };
+        container.appendChild(row);
+        container.appendChild(childContainer);
+        if (expandedDirs.has(entry.fePath)) loadFileTree(entry.fePath, childContainer, depth + 1);
+      } else {
+        row.onclick = () => openFile(entry);
+        container.appendChild(row);
+      }
+    }
+    applyFileFilter();
+  } catch (e) {
+    container.textContent = 'Error loading files';
+    console.error(e);
+  }
+}
+
+async function openFile(entry) {
+  const ext = entry.feName.split('.').pop();
+  if (ext === 'md') {
+    setStatus('Loading ' + entry.fePath + '...', 'running');
+    activePreviewCm = null;
+    try {
+      const nb = await api('POST', 'load', { lrPath: entry.fePath });
+      Object.keys(editors).forEach((k) => delete editors[k]);
+      render(nb);
+      setStatus('Loaded ' + entry.fePath, '');
+      refreshFiles();
+    } catch (e) {
+      setStatus('Load failed: ' + e.message, 'error');
+    }
+  } else {
+    showFilePreview(entry.feName, entry.fePath);
+  }
+}
+
+// The active non-notebook editor, tracked so periodic autosave can flush
+// it. Only set once the file is fully loaded and therefore editable.

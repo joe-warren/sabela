@@ -1,0 +1,43 @@
+/* ── Status indicator ──────────────────────── */
+.slide-status {
+  position: fixed;
+  bottom: 16px;
+  right: 16px;
+  padding: 6px 14px;
+  border-radius: 20px;
+  font-size: 12px;
+  font-weight: 600;
+  background: var(--bg-muted);
+  border: 1px solid var(--border);
+  color: var(--fg-dim);
+  display: none;
+  z-index: 200;
+}
+.slide-status.visible {
+  display: block;
+}
+.slide-status.running {
+  color: var(--accent);
+  border-color: var(--accent);
+}
+
+@media (max-width: 900px) {
+  .slide {
+    padding: 28px 24px 76px;
+  }
+  .deck.show-code .slide.has-code .slide-inner {
+    grid-template-columns: 1fr;
+    gap: 20px;
+  }
+  .prose h1 {
+    font-size: 32px;
+  }
+  .prose h2 {
+    font-size: 26px;
+  }
+  .prose p,
+  .prose ul,
+  .prose ol {
+    font-size: 17px;
+  }
+}

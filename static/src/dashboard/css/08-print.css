@@ -1,0 +1,125 @@
+/* ── Print / Save as PDF ───────────────────────
+     Force a light, ink-friendly page regardless of the on-screen theme, hide
+     the app chrome, and make tall outputs paginate cleanly. Content iframes are
+     swapped for inline .print-inline DOM by printToPdf() before this applies. */
+@media print {
+  :root,
+  :root[data-theme='dark'] {
+    --bg: #ffffff;
+    --bg-muted: #f6f6f6;
+    --bg-card: #ffffff;
+    --fg: #111111;
+    --fg-dim: #555555;
+    --fg-heading: #000000;
+    --accent: #0050d0;
+    --accent-rgb: 0, 80, 208;
+    --border: #cccccc;
+    --border-light: #e0e0e0;
+    --shadow: none;
+  }
+  html,
+  body {
+    height: auto;
+    overflow: visible;
+  }
+  body {
+    font-size: 11pt;
+    -webkit-print-color-adjust: exact;
+    print-color-adjust: exact;
+  }
+  @page {
+    margin: 18mm 14mm;
+  }
+
+  /* Hide app chrome — only prose + outputs (and code, in notebook mode) print. */
+  .dashboard-header,
+  .dash-status {
+    display: none !important;
+  }
+  .dashboard-main {
+    padding: 0;
+    display: block;
+  }
+  .dashboard-content {
+    max-width: 100%;
+  }
+
+  * {
+    box-shadow: none !important;
+  }
+
+  /* Keep small blocks whole; let tall tables split with a repeating header. */
+  .dash-section,
+  .dash-code,
+  .dash-widget,
+  .dash-error,
+  .dash-output:not(:has(table)) {
+    break-inside: avoid;
+  }
+  .dash-output,
+  .print-inline {
+    break-inside: auto;
+  }
+  table {
+    break-inside: auto;
+  }
+  thead {
+    display: table-header-group;
+  }
+  tr,
+  img,
+  svg {
+    break-inside: avoid;
+  }
+  h1,
+  h2,
+  h3 {
+    break-after: avoid;
+  }
+
+  /* Wrap long lines so nothing clips off the right edge of the page. */
+  .dash-code code,
+  .dash-output .mime-plain,
+  .dash-output .mime-json,
+  .print-inline pre {
+    white-space: pre-wrap;
+    word-break: break-word;
+  }
+
+  /* Inlined HTML outputs: base typography + reuse the prose table styling. */
+  .print-inline {
+    font-size: 11pt;
+    line-height: 1.5;
+    padding: 4px 0;
+  }
+  .print-inline img {
+    max-width: 100%;
+  }
+  .print-inline table {
+    border-collapse: separate;
+    border-spacing: 0;
+    width: 100%;
+    margin: 10px 0;
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    overflow: hidden;
+    font-size: 10pt;
+  }
+  .print-inline th,
+  .print-inline td {
+    padding: 6px 10px;
+    text-align: left;
+    border-bottom: 1px solid var(--border-light);
+  }
+  .print-inline tr:last-child td {
+    border-bottom: none;
+  }
+  .print-inline th {
+    background: var(--bg-muted);
+    color: var(--fg-heading);
+    font-weight: 600;
+  }
+  .print-inline tr:nth-child(even) td {
+    background: rgba(var(--accent-rgb), 0.05);
+  }
+}

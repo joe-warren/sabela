@@ -1,0 +1,128 @@
+/* ── Live editing ──────────────────────────────────────────── */
+/* In edit mode the code pane is always visible (you can't edit
+     what you can't see), regardless of the show-code toggle. */
+.deck.editing .slide.has-code .slide-code {
+  display: block;
+}
+.deck.editing .slide.has-code .slide-inner {
+  max-width: 1500px;
+  display: grid;
+  grid-template-columns: minmax(0, 0.85fr) minmax(0, 1.15fr);
+  gap: 36px;
+  align-items: start;
+}
+.code-edit-head {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 8px;
+}
+.code-edit-head .code-lang {
+  margin-bottom: 0;
+  flex: 1;
+}
+.run-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  font-family: var(--font-mono);
+  font-size: 11px;
+  font-weight: 600;
+  padding: 5px 10px;
+  border-radius: 6px;
+  border: 1px solid var(--accent);
+  color: var(--accent);
+  background: transparent;
+  cursor: pointer;
+  transition: all 0.15s;
+}
+.run-btn:hover {
+  background: var(--accent);
+  color: #fff;
+}
+.run-btn svg {
+  width: 12px;
+  height: 12px;
+}
+.prose-editor {
+  width: 100%;
+  box-sizing: border-box;
+  background: var(--bg-card);
+  color: var(--fg);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 18px 20px;
+  resize: vertical;
+  outline: none;
+  transition: border-color 0.15s;
+  font-family: var(--font-sans);
+  font-size: 18px;
+  line-height: 1.6;
+  min-height: 240px;
+}
+.prose-editor:focus {
+  border-color: var(--accent);
+}
+
+/* Code editor: a transparent textarea layered over a highlighted
+     <pre> so the caret is real but the visible text is colored. */
+.code-ed {
+  position: relative;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  background: var(--bg-card);
+  transition: border-color 0.15s;
+}
+.code-ed:focus-within {
+  border-color: var(--accent);
+}
+.code-ed-hl,
+.code-ed-ta {
+  margin: 0;
+  border: 0;
+  box-sizing: border-box;
+  font-family: var(--font-mono);
+  font-size: 14px;
+  line-height: 1.6;
+  padding: 18px 20px;
+  tab-size: 2;
+  white-space: pre;
+  overflow-wrap: normal;
+  word-break: normal;
+}
+.code-ed-hl {
+  position: absolute;
+  inset: 0;
+  overflow: hidden;
+  pointer-events: none;
+  background: transparent;
+  color: var(--fg);
+  border-radius: var(--radius);
+}
+.code-ed-hl code {
+  font: inherit;
+  background: transparent;
+  display: block;
+  white-space: pre;
+}
+.code-ed-ta {
+  position: relative;
+  display: block;
+  width: 100%;
+  min-height: 180px;
+  resize: vertical;
+  overflow: auto;
+  background: transparent;
+  color: transparent;
+  caret-color: var(--fg);
+  outline: none;
+}
+.code-ed-ta::selection {
+  background: rgba(var(--accent-rgb), 0.3);
+}
+.edit-hint {
+  margin-top: 6px;
+  font-family: var(--font-mono);
+  font-size: 11px;
+  color: var(--fg-dim);
+}

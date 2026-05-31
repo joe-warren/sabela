@@ -26,6 +26,23 @@ jobs:
         with:
           path: '["src/", "app/", "test/", "sabela-hub/src/", "sabela-hub/test/"]'
           fail-on: warning
+  frontend:
+    # The served pages (static/*.html) are generated from static/src/ by
+    # tools/build-frontend.mjs and embedded into the binary at compile time.
+    # This job fails a PR that forgot to rebuild them, left a partial
+    # unformatted, or grew a JS module past the size cap.
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+      - name: Prettier check (frontend sources)
+        run: npx --yes --package=prettier@3.3.3 -- prettier --check 'static/src/**/*.{html,js,css}' 'tools/*.mjs'
+      - name: Bundled pages up to date
+        run: node tools/build-frontend.mjs --check
+      - name: Module size cap
+        run: ./scripts/check-module-size.sh
   linux:
     name: Haskell-CI - Linux - ${{ matrix.compiler }}
     runs-on: ubuntu-latest

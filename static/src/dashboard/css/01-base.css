@@ -1,0 +1,61 @@
+@import url('https://fonts.googleapis.com/css2?family=Geist:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500;600;700&display=swap');
+
+:root {
+  --font-sans: 'Geist', -apple-system, BlinkMacSystemFont, 'Inter', system-ui, sans-serif;
+  --font-mono: 'JetBrains Mono', ui-monospace, SFMono-Regular, monospace;
+
+  /* light — clean white with cool accent */
+  --bg: #ffffff;
+  --bg-muted: #fafafa;
+  --bg-card: #ffffff;
+  --fg: #0a0a0a;
+  --fg-dim: #71717a;
+  --fg-heading: #000000;
+  --accent: #0066ff;
+  --accent-rgb: 0, 102, 255;
+  --accent-hover: #0052cc;
+  --border: #e4e4e7;
+  --border-light: #f4f4f5;
+  --main-max-w: 760px;
+  --radius: 8px;
+  --shadow: 0 1px 3px rgba(0, 0, 0, 0.06);
+  --err-border: #fecaca;
+  --err-bg: #fef2f2;
+  --err-fg: #991b1b;
+  --hl-keyword: #8839ef;
+  --hl-string: #40a02b;
+  --hl-number: #fe640b;
+  --hl-comment: #8c8fa1;
+  --hl-function: #1e66f5;
+  --hl-type: #df8e1d;
+  --hl-builtin: #d20f39;
+  --hl-operator: #04a5e5;
+  --hl-meta: #ea76cb;
+}
+:root[data-theme='dark'] {
+  /* dark — Catppuccin Mocha */
+  --bg: #1e1e2e;
+  --bg-muted: #262637;
+  --bg-card: #181825;
+  --fg: #cdd6f4;
+  --fg-dim: #9399b2;
+  --fg-heading: #f5f5ff;
+  --accent: #89b4fa;
+  --accent-rgb: 137, 180, 250;
+  --accent-hover: #a4c0fa;
+  --border: #313244;
+  --border-light: #262637;
+  --shadow: 0 1px 3px rgba(0, 0, 0, 0.4);
+  --err-border: #5a2730;
+  --err-bg: #2a1a1e;
+  --err-fg: #f38ba8;
+  --hl-keyword: #cba6f7;
+  --hl-string: #a6e3a1;
+  --hl-number: #fab387;
+  --hl-comment: #7f849c;
+  --hl-function: #89b4fa;
+  --hl-type: #f9e2af;
+  --hl-builtin: #f38ba8;
+  --hl-operator: #89dceb;
+  --hl-meta: #f5c2e7;
+}

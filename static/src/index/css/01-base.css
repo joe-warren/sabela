@@ -1,0 +1,115 @@
+@import url('https://fonts.googleapis.com/css2?family=Geist:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500;600;700&display=swap');
+
+:root {
+  --font-sans: 'Geist', -apple-system, BlinkMacSystemFont, 'Inter', system-ui, sans-serif;
+  --font-mono: 'JetBrains Mono', ui-monospace, SFMono-Regular, monospace;
+
+  /* dark — Catppuccin Mocha (default) */
+  --bg: #1e1e2e;
+  --bg-cell: #262637;
+  --bg-output: #1a1a28;
+  --bg-sidebar: #1a1a28;
+  --bg-panel: #181825;
+  --fg: #cdd6f4;
+  --fg-dim: #9399b2;
+  --fg-bright: #f5f5ff;
+  --accent: #89b4fa;
+  --accent-rgb: 137, 180, 250;
+  --accent-dim: #45475a;
+  --green: #a6e3a1;
+  --red: #f38ba8;
+  --yellow: #f9e2af;
+  --peach: #fab387;
+  --mauve: #cba6f7;
+  --border: #313244;
+  --shadow-strong: 0 8px 32px rgba(0, 0, 0, 0.5);
+  --shadow-soft: 0 4px 16px rgba(0, 0, 0, 0.4);
+  --error-tooltip-bg: #2a1a1e;
+  --output-html-bg: #ffffff;
+  --output-html-fg: #1e1e2e;
+  --radius: 8px;
+  --sidebar-w: 240px;
+  --panel-w: 320px;
+}
+:root[data-theme='light'] {
+  /* light — clean white with cool accent */
+  --bg: #ffffff;
+  --bg-cell: #ffffff;
+  --bg-output: #fafafa;
+  --bg-sidebar: #fafafa;
+  --bg-panel: #f5f5f5;
+  --fg: #0a0a0a;
+  --fg-dim: #71717a;
+  --fg-bright: #000000;
+  --accent: #0066ff;
+  --accent-rgb: 0, 102, 255;
+  --accent-dim: #e4e4e7;
+  --green: #16a34a;
+  --red: #dc2626;
+  --yellow: #ca8a04;
+  --peach: #ea580c;
+  --mauve: #7c3aed;
+  --border: #e4e4e7;
+  --shadow-strong: 0 8px 32px rgba(0, 0, 0, 0.1);
+  --shadow-soft: 0 1px 3px rgba(0, 0, 0, 0.06);
+  --error-tooltip-bg: #fef2f2;
+  --output-html-bg: #ffffff;
+  --output-html-fg: #0a0a0a;
+}
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+  font-variant-ligatures: none;
+  font-feature-settings:
+    'calt' 0,
+    'liga' 0;
+}
+html,
+body {
+  height: 100%;
+  margin: 0;
+  overflow: hidden;
+}
+body {
+  font-family: var(--font-sans);
+  font-size: 15px;
+  color: var(--fg);
+  background: radial-gradient(
+      1200px 540px at 72% -14%,
+      rgba(var(--accent-rgb), 0.07),
+      transparent 72%
+    ),
+    var(--bg);
+  line-height: 1.65;
+  display: flex;
+  flex-direction: column;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+/* Faint film grain in the reading column (dark theme only — keeps the
+     warm ground from looking flat without muddying the cream paper). */
+body::before {
+  content: '';
+  position: fixed;
+  inset: 0;
+  z-index: 0;
+  pointer-events: none;
+  display: none;
+  opacity: 0.45;
+  mix-blend-mode: soft-light;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='180' height='180'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+  background-size: 180px 180px;
+}
+:root[data-theme='dark'] body::before {
+  display: block;
+}
+.toolbar,
+.main-layout {
+  position: relative;
+  z-index: 1;
+}
+::selection {
+  background: rgba(var(--accent-rgb), 0.28);
+  color: var(--fg-bright);
+}

@@ -1,0 +1,73 @@
+/* ── Header ────────────────────────────────── */
+.dashboard-header {
+  position: sticky;
+  top: 0;
+  z-index: 100;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px 24px;
+  background: var(--bg);
+  border-bottom: 1px solid var(--border);
+  backdrop-filter: saturate(120%) blur(6px);
+}
+.dashboard-header h1 {
+  font-family: var(--font-mono);
+  font-size: 15px;
+  font-weight: 600;
+  letter-spacing: 0.3px;
+  color: var(--fg-heading);
+  flex: 1;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.header-actions {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+}
+.header-actions a,
+.header-actions button {
+  font-family: var(--font-mono);
+  font-size: 12px;
+  font-weight: 500;
+  padding: 6px 12px;
+  border-radius: 6px;
+  border: 1px solid var(--border);
+  background: transparent;
+  color: var(--fg-dim);
+  cursor: pointer;
+  text-decoration: none;
+  transition: all 0.15s;
+}
+.header-actions a:hover,
+.header-actions button:hover {
+  border-color: var(--accent);
+  color: var(--accent);
+}
+.header-actions .icon-btn {
+  width: 30px;
+  height: 30px;
+  padding: 0;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid transparent;
+  color: var(--fg-dim);
+}
+.header-actions .icon-btn:hover {
+  background: var(--bg-muted);
+  color: var(--fg-heading);
+  border-color: transparent;
+}
+.icon-svg {
+  width: 16px;
+  height: 16px;
+  stroke: currentColor;
+  stroke-width: 2;
+  fill: none;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  flex-shrink: 0;
+}

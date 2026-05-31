@@ -1,0 +1,168 @@
+/* ── Toolbar ───────────────────────────────── */
+.toolbar {
+  flex-shrink: 0;
+  z-index: 100;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 16px;
+  background: var(--bg-panel);
+  border-bottom: 1px solid var(--border);
+  font-family: var(--font-mono);
+  font-size: 13px;
+}
+.toolbar-title {
+  font-weight: 600;
+  color: var(--accent);
+  margin-right: auto;
+  font-size: 14px;
+  letter-spacing: 0.5px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  max-width: 200px;
+}
+.toolbar button,
+.toolbar .tbtn {
+  font-family: var(--font-mono);
+  font-size: 11px;
+  padding: 5px 12px;
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  background: transparent;
+  color: var(--fg);
+  cursor: pointer;
+  transition: all 0.15s;
+  white-space: nowrap;
+}
+.toolbar button:hover,
+.toolbar .tbtn:hover {
+  background: var(--bg-cell);
+  border-color: var(--accent-dim);
+}
+.toolbar .primary {
+  background: var(--accent);
+  color: var(--bg);
+  border-color: var(--accent);
+  font-weight: 500;
+  height: 30px;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 0 14px;
+}
+.toolbar .primary:hover {
+  opacity: 0.9;
+}
+.toolbar .sep {
+  width: 1px;
+  height: 20px;
+  background: var(--border);
+  flex-shrink: 0;
+}
+.toolbar-dropdown {
+  position: relative;
+}
+.toolbar-dropdown-menu {
+  display: none;
+  position: absolute;
+  top: 100%;
+  right: 0;
+  margin-top: 4px;
+  z-index: 300;
+  background: var(--bg-panel);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 4px 0;
+  min-width: 220px;
+  box-shadow: var(--shadow-soft);
+  font-family: var(--font-mono);
+  font-size: 12px;
+}
+.toolbar-dropdown.open > .toolbar-dropdown-menu {
+  display: block;
+}
+.toolbar-dropdown-menu .dd-item {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  padding: 6px 14px;
+  cursor: pointer;
+  color: var(--fg);
+  white-space: nowrap;
+}
+.toolbar-dropdown-menu .dd-item:hover {
+  background: var(--bg-cell);
+}
+.toolbar-dropdown-menu .dd-item .dd-icon {
+  width: 14px;
+  height: 14px;
+  color: var(--fg-dim);
+  flex-shrink: 0;
+}
+.toolbar-dropdown-menu .dd-item:hover .dd-icon {
+  color: var(--accent);
+}
+.toolbar-dropdown-menu .dd-item .dd-label {
+  flex: 1;
+}
+.toolbar-dropdown-menu .dd-item .dd-hint {
+  font-size: 10px;
+  color: var(--fg-dim);
+  margin-left: 16px;
+}
+.toolbar-dropdown-menu .dd-sep {
+  height: 1px;
+  background: var(--border);
+  margin: 4px 0;
+}
+/* Submenu flyout (overflow menu only) — opens LEFT, since the menu is right-anchored */
+.toolbar-dropdown-menu .dd-item.has-submenu {
+  position: relative;
+}
+.toolbar-dropdown-menu .dd-item.has-submenu .dd-chev {
+  width: 12px;
+  height: 12px;
+  color: var(--fg-dim);
+  flex-shrink: 0;
+}
+.dd-submenu {
+  top: -5px;
+  right: 100%;
+  left: auto;
+  margin-top: 0;
+  margin-right: 4px;
+}
+/* invisible bridge across the 4px gutter so :hover survives the parent→flyout traverse */
+.dd-item.has-submenu::after {
+  content: '';
+  position: absolute;
+  top: 0;
+  right: 100%;
+  width: 8px;
+  height: 100%;
+}
+.toolbar-dropdown-menu .dd-item.has-submenu:hover > .dd-submenu {
+  display: block;
+}
+.status {
+  font-size: 11px;
+  white-space: nowrap;
+}
+.status.running {
+  color: var(--yellow);
+}
+.status.error {
+  color: var(--red);
+}
+.sse-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--fg-dim);
+  display: inline-block;
+  flex-shrink: 0;
+}
+.sse-dot.connected {
+  background: var(--green);
+}

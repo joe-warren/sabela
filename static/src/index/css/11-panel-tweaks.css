@@ -1,0 +1,35 @@
+/* ── Panel-tab tweaks (icons + label) ──────── */
+.panel-tab .icon-svg {
+  vertical-align: -3px;
+  margin-right: 6px;
+  opacity: 0.75;
+}
+.panel-tab.active .icon-svg {
+  opacity: 1;
+}
+
+/* ── File tree active accent bar ───────────── */
+.file-entry {
+  position: relative;
+}
+.file-entry.active {
+  background: transparent;
+  color: var(--fg-bright);
+}
+.file-entry.active::before {
+  content: '';
+  position: absolute;
+  left: 0;
+  top: 2px;
+  bottom: 2px;
+  width: 3px;
+  background: var(--accent);
+  border-radius: 0 2px 2px 0;
+}
+.file-entry.active .name {
+  color: var(--fg-bright);
+  font-weight: 600;
+}
+.file-entry:hover {
+  background: var(--accent-dim);
+}

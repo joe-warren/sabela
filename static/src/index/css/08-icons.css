@@ -1,0 +1,53 @@
+/* ── Icon system ────────────────────────────── */
+.icon-svg {
+  width: 16px;
+  height: 16px;
+  stroke: currentColor;
+  stroke-width: 2;
+  fill: none;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  flex-shrink: 0;
+  vertical-align: -3px;
+}
+.icon-svg.small {
+  width: 14px;
+  height: 14px;
+}
+.icon-svg.large {
+  width: 18px;
+  height: 18px;
+}
+
+/* Bare icon button (no border, just a hit target) */
+button.icon-btn,
+.icon-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  background: transparent;
+  border: 1px solid transparent !important;
+  color: var(--fg-dim);
+  width: 30px;
+  height: 30px;
+  border-radius: 6px;
+  cursor: pointer;
+  padding: 0;
+  transition:
+    background 0.12s,
+    color 0.12s,
+    border-color 0.12s;
+  flex-shrink: 0;
+}
+button.icon-btn:hover,
+.icon-btn:hover {
+  background: var(--bg-cell) !important;
+  color: var(--fg-bright);
+  border-color: var(--border) !important;
+}
+button.icon-btn.active,
+.icon-btn.active {
+  color: var(--accent);
+  background: var(--accent-dim) !important;
+}
