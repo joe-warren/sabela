@@ -48,8 +48,9 @@ import Sabela.State (App (..))
 import Sabela.State.Environment (Environment (..))
 import Sabela.Url (rewriteGitHubUrl)
 
--- | Hard ceiling on an imported download (25 MiB), so a runaway URL can't
--- exhaust memory.
+{- | Hard ceiling on an imported download (25 MiB), so a runaway URL can't
+exhaust memory.
+-}
 maxImportBytes :: Int
 maxImportBytes = 25 * 1024 * 1024
 
@@ -160,8 +161,9 @@ fetchUrl mgr url = do
                                 )
                         Just bs -> Right bs
 
--- | Concatenate a body reader's chunks, stopping with 'Nothing' the moment
--- the running total would exceed @capBytes@.
+{- | Concatenate a body reader's chunks, stopping with 'Nothing' the moment
+the running total would exceed @capBytes@.
+-}
 drainCapped :: IO BS.ByteString -> Int -> IO (Maybe BS.ByteString)
 drainCapped readChunk capBytes = go [] 0
   where
@@ -175,8 +177,9 @@ drainCapped readChunk capBytes = go [] 0
                         then pure Nothing
                         else go (chunk : acc) n'
 
--- | Confine the destination dir to the work dir, then write the bytes;
--- returns the work-dir-relative path on success.
+{- | Confine the destination dir to the work dir, then write the bytes;
+returns the work-dir-relative path on success.
+-}
 writeImport ::
     App -> Maybe Text -> Text -> BS.ByteString -> IO (Either Text Text)
 writeImport app mDir name bytes = do

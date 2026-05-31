@@ -563,6 +563,7 @@
           box-shadow: none;
         }
       }
+
       .panel-tabs {
         display: flex;
         border-bottom: 1px solid var(--border);
@@ -590,6 +591,22 @@
       .panel-tab.active {
         color: var(--accent);
         border-bottom-color: var(--accent);
+      }
+      .panel-tab-close {
+        flex: 0 0 auto;
+        width: 34px;
+        padding: 8px 0;
+        font-size: 18px;
+        line-height: 1;
+        color: var(--fg-dim);
+        cursor: pointer;
+        background: none;
+        border: none;
+        border-bottom: 2px solid transparent;
+        transition: color 0.15s;
+      }
+      .panel-tab-close:hover {
+        color: var(--fg);
       }
       .panel-content {
         flex: 1;
@@ -2227,6 +2244,86 @@
           animation: none !important;
         }
       }
+
+      /* ── Phone layout ──────────────────────────────
+         Kept at the end of the stylesheet so these overrides win on source
+         order against the base component rules defined earlier (media queries
+         add no specificity). Selectors match the base rules' specificity. */
+      @media (max-width: 640px) {
+        /* Sidebar floats as an overlay drawer, mirroring the right-panel. */
+        .sidebar {
+          position: absolute;
+          top: 0;
+          left: 0;
+          bottom: 0;
+          z-index: 60;
+          max-width: 88vw;
+        }
+        .sidebar:not(.collapsed) {
+          box-shadow: 10px 0 30px rgba(0, 0, 0, 0.3);
+        }
+        .sidebar.collapsed {
+          width: 0;
+          min-width: 0;
+          box-shadow: none;
+        }
+        .right-panel {
+          width: min(420px, 100vw);
+          max-width: 100vw;
+        }
+
+        /* Toolbar fits a phone: Run all + palette collapse to icons and the
+           title shrinks, so [≡] title [▶] [search] [⋯] [theme] all show. */
+        .toolbar {
+          gap: 6px;
+          padding: 8px 10px;
+        }
+        .toolbar-title-wrap {
+          max-width: 84px;
+        }
+        .toolbar-title-wrap .toolbar-title {
+          max-width: 84px;
+        }
+        .toolbar .primary {
+          padding: 0 10px;
+        }
+        .toolbar .primary .btn-label {
+          display: none;
+        }
+        button.palette-trigger {
+          min-width: 0;
+          padding: 0 8px;
+        }
+        button.palette-trigger .palette-trigger-label,
+        button.palette-trigger kbd,
+        .save-indicator,
+        .toolbar .status {
+          display: none;
+        }
+
+        /* Use the full narrow width for cells. */
+        .notebook {
+          padding: 16px 12px 80px;
+        }
+
+        /* Drop CM5's reserved scrollbar gutter that renders as dead space
+           below the text on touch browsers. */
+        .cell.code .CodeMirror-scroll {
+          margin-bottom: 0;
+          padding-bottom: 0;
+          min-height: 28px;
+        }
+      }
+
+      /* Comfortable tap targets on touch devices. */
+      @media (pointer: coarse) {
+        .toolbar .icon-btn,
+        .sidebar-header button,
+        .cell-actions button {
+          min-width: 36px;
+          min-height: 36px;
+        }
+      }
     </style>
   </head>
   <body>
@@ -2509,7 +2606,7 @@
       <span class="spacer"></span>
       <button class="primary" id="btn-run-all" onclick="runAll()" aria-label="Run all cells">
         <svg class="icon-svg" style="vertical-align: -2px"><use href="#i-play" /></svg>
-        Run all
+        <span class="btn-label">Run all</span>
       </button>
       <button class="palette-trigger" id="btn-palette" onclick="openPalette()" aria-label="Open command palette">
         <svg class="icon-svg"><use href="#i-search" /></svg>
@@ -2587,7 +2684,7 @@
             class="panel-tab active"
             role="tab"
             data-tab="info"
-            onclick="switchTab('info')"
+            onclick="togglePanel('info')"
             aria-selected="true"
             aria-controls="panel-info"
           >
@@ -2598,7 +2695,7 @@
             class="panel-tab"
             role="tab"
             data-tab="examples"
-            onclick="switchTab('examples')"
+            onclick="togglePanel('examples')"
             aria-selected="false"
             aria-controls="panel-examples"
           >
@@ -2609,13 +2706,14 @@
             class="panel-tab"
             role="tab"
             data-tab="chat"
-            onclick="switchTab('chat')"
+            onclick="togglePanel('chat')"
             aria-selected="false"
             aria-controls="panel-chat"
           >
             <svg class="icon-svg small"><use href="#i-message" /></svg>
             Chat
           </button>
+          <button class="panel-tab-close" onclick="closePanel()" aria-label="Close panel" title="Close panel">×</button>
         </div>
         <div class="panel-content" id="panel-info" role="tabpanel" aria-labelledby="tab-info" style="display: block">
           <div class="info-search">
@@ -4336,6 +4434,10 @@
         }
       }
 
+      function closePanel() {
+        document.getElementById('right-panel').classList.add('collapsed');
+      }
+
       function switchTab(tab) {
         activeTab = tab;
         document.querySelectorAll('.panel-tab').forEach((t) => {
@@ -4553,6 +4655,7 @@
             theme: currentTheme() === 'light' ? 'idea' : 'nord',
             lineNumbers: false,
             viewportMargin: Infinity,
+            inputStyle: window.matchMedia('(pointer: coarse)').matches ? 'contenteditable' : 'textarea',
             indentUnit: 2,
             tabSize: 2,
             lineWrapping: true,
