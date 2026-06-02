@@ -8,6 +8,7 @@ import qualified Test.ApiWireSpec as ApiWireSpec
 import qualified Test.CacheControlSpec as CacheControlSpec
 import qualified Test.CompactResultSpec as CompactResultSpec
 import qualified Test.CycleMsgSpec as CycleMsgSpec
+import qualified Test.DefaultExtsSpec as DefaultExtsSpec
 import qualified Test.ExportSpec as ExportSpec
 import qualified Test.GenerationSpec as GenerationSpec
 import Test.Hspec (hspec)
@@ -30,6 +31,7 @@ main = hspec $ do
     SessionSpec.spec
     TopoSpec.spec
     ExportSpec.spec
+    DefaultExtsSpec.spec
     NotebookExportSpec.spec
     ParseSpec.spec
     OutputSpec.spec

@@ -147,6 +147,7 @@ test-suite sabela-test
                       Test.TopoSpec.Order,
                       Test.TopoSpec.Select,
                       Test.ExportSpec,
+                      Test.DefaultExtsSpec,
                       Test.NotebookExportSpec,
                       Test.ParseSpec,
                       Test.OutputSpec,

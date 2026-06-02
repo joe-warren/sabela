@@ -25,7 +25,10 @@ RUN mkdir -p /opt/warm \
 
 COPY ./sabela.cabal /opt/build/
 
-RUN cabal build --only-dependencies
+# Refresh the package index here (the earlier `cabal update` layer is cached and
+# can predate a recent dependency release, e.g. a scripths bump). This keeps the
+# slow warm layer above cached while resolving sabela's deps against a fresh index.
+RUN cabal update && cabal build --only-dependencies
 
 COPY . /opt/build
 

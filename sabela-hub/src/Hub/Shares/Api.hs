@@ -17,6 +17,7 @@ module Hub.Shares.Api (
 import Control.Exception (SomeException, try)
 import Data.Aeson (Value, object, toJSON, (.=))
 import qualified Data.ByteString.Lazy as BL
+import Data.Maybe (fromMaybe)
 import Data.Text (Text)
 import qualified Data.Text as T
 import qualified Data.Text.Encoding as TE
@@ -66,7 +67,7 @@ which export modes are publishable.
 publishMode :: Query -> ExportMode
 publishMode q =
     case lookup "mode" q of
-        Just (Just bs) -> Data.Maybe.fromMaybe ExpDashboard (parseExportMode (TE.decodeUtf8 bs))
+        Just (Just bs) -> fromMaybe ExpDashboard (parseExportMode (TE.decodeUtf8 bs))
         _ -> ExpDashboard
 
 {- | @POST \/_hub\/publish?mode=dashboard|slideshow|notebook@: fetch the owner

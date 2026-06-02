@@ -1,8 +1,9 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-# Builds and pushes both Sabela and hub images, registers task definitions.
-# For deploying just one, use infra/deploy-sabela.sh or infra/deploy-hub.sh.
+# Builds and pushes both the Sabela and hub images to ECR (no rollout).
+# To build, push, AND roll out the hub on the box, use infra/deploy-box.sh
+# (add --with-sabela to also rebuild the per-user image).
 
 source "$(dirname "$0")/../infra/.env"
 
@@ -19,10 +20,5 @@ docker build --platform linux/amd64 -f sabela-hub/Dockerfile -t datahaskell/sabe
 docker tag datahaskell/sabela-hub:latest "$ECR_HUB:latest"
 docker push "$ECR_HUB:latest"
 
-echo "=== Registering task definitions ==="
-aws ecs register-task-definition \
-  --cli-input-json file://infra/task-definition.json \
-  --region "$AWS_REGION" > /dev/null
-
 echo ""
-echo "Images pushed and task definitions registered."
+echo "Images pushed. Roll out the hub on the box with: ./infra/deploy-box.sh"
