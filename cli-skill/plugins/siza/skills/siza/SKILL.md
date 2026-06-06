@@ -51,7 +51,7 @@ ${CLAUDE_PLUGIN_ROOT}/skills/siza/scripts/siza-tool.sh scratchpad \
   '{"language":"Haskell","code":"import qualified DataFrame as D\nlangs <- D.readCsv \"./examples/data/languages.csv\"\nD.dimensions langs"}'
 
 # 5. If the dry-run is clean, insert the cell after the last relevant one.
-#    Always pass cell_type (and language for code cells) — see the gotcha below.
+#    Always pass BOTH cell_type and language — required on every cell, prose included (see gotcha).
 ${CLAUDE_PLUGIN_ROOT}/skills/siza/scripts/siza-tool.sh insert_cell \
   '{"after_cell_id":7,"cell_type":"CodeCell","language":"Haskell","source":"import qualified DataFrame as D\nlangs <- D.readCsv \"./examples/data/languages.csv\"\nD.take 5 langs"}'
 
@@ -80,7 +80,7 @@ All tools accept a JSON object input; outputs below are abbreviated.
 | `read_cell` | `{cell_id}` | `{id,hash,type,lang,source,outputs,error}` | Full source + rendered outputs. Large outputs may be a handle. |
 | `read_cell_output` | `{cell_id}` | `{id,outputs,error}` | Cheaper than `read_cell` when you already know the source. |
 | `find_cells_by_content` | `{pattern}` | `{matches:[{id,lang,matchingLines:[{line,text}]}]}` | Case-sensitive substring. Up to 5 matching lines per cell, 120 chars each. |
-| `insert_cell` | `{after_cell_id,source,cell_type,language?}` | `{cellId,hash,execution}` | Auto-runs Haskell code cells; `execution: null` for Python or prose. **Pass `cell_type` explicitly** (`"CodeCell"`/`"ProseCell"`) and `language` (`"Haskell"`/`"Python"`) for code cells — the JSON schema marks them optional but omitting `cell_type` fails with `Unknown cell_type: .`. |
+| `insert_cell` | `{after_cell_id,source,cell_type,language?}` | `{cellId,hash,execution}` | Auto-runs Haskell code cells; `execution: null` for Python or prose. **Pass `cell_type` AND `language` on _every_ insert — prose cells included.** The schema marks them optional, but omitting `cell_type` fails with `Unknown cell_type: .` and omitting `language` fails with `Unknown language: .` even for a `ProseCell` (use `"Haskell"` if there's no real language to give). |
 | `delete_cell` | `{cell_id}` | `{deleted:true,cellId}` | Irreversible. |
 | `replace_cell_source` | `{cell_id,new_source,expected_hash?}` | `{cellId,hash,execution}` | Auto-runs. Pass `expected_hash` to detect concurrent edits. |
 | `propose_edit` | `{cell_id,new_source,expected_hash?}` | `{editId,cellId,status:"pending"}` | Does **not** apply or run. Re-proposing supersedes prior pending edit on the same cell. |
@@ -143,6 +143,7 @@ The user edited the cell out from under you. Re-`read_cell`, decide whether your
 
 ## Other gotchas
 
+- **No rebinding a name across cells.** Sabela tracks top-level definitions globally, so binding a name a *different* cell already defines fails — e.g. `df <- …` (or `let df = …`) when `df` is bound elsewhere returns `Duplicate definition: 'df' is already defined in cell N (which takes precedence)`. To transform a value, bind a **new** name (`let featured = … df …`) and thread it forward — `propose_edit` the downstream consumers to read the new name instead of trying to overwrite the original. (Re-running the *same* cell that owns a binding is fine; this only bites when a second cell redefines it.)
 - **Cabal metadata.** Cells declare deps with `-- cabal:` comments. Changing those triggers a package-env rebuild and a GHCi restart — slow. Batch dep changes when you can.
 - **Single GHCi kernel per notebook.** A long-running `execute_cell` blocks every other cell. Use `scratchpad` for heavy exploration; only commit to a notebook cell once you're confident.
 - **Token cap.** Responses cap at 4096 tokens; very large `propose_edit` / `replace_cell_source` payloads can truncate mid-JSON. Split: `insert_cell` an empty cell (or a small stub), then patch it in follow-up calls.

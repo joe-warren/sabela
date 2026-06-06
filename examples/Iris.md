@@ -124,10 +124,10 @@ sel <- display (scatterSelectWith "iris-petal-lasso" opts pts)
 
 > <!-- scripths:mime text/plain -->
 > <!-- MIME:text/html -->
-> <select onchange="parent.postMessage({type:'widget',cellId:234,name:'feature',value:this.value},'*')"><option selected>petal</option><option>sepal</option></select>
+> <select onchange="parent.postMessage({type:'widget',cellId:44,name:'feature',value:this.value},'*')"><option selected>petal</option><option>sepal</option></select>
 > <!-- MIME:text/html -->
 > <div style='font-family:sans-serif'>
-> <canvas id='sc_234_iris-petal-lasso' width='560' height='360' style='border:1px solid #e2e2ea;border-radius:6px;cursor:crosshair;max-width:100%;touch-action:none'></canvas>
+> <canvas id='sc_44_iris-petal-lasso' width='560' height='360' style='border:1px solid #e2e2ea;border-radius:6px;cursor:crosshair;max-width:100%;touch-action:none'></canvas>
 > <div style='color:#889;font-size:11px;margin-top:5px'>drag to lasso-select &middot; double-click to clear &middot; 150 points</div>
 > <script>
 > (function(){
@@ -135,12 +135,12 @@ sel <- display (scatterSelectWith "iris-petal-lasso" opts pts)
 > var SEL=[];
 > var CVAL=[0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,1.0,1.0,1.0,1.0,1.0,1.0,1.0,1.0,1.0,1.0,1.0,1.0,1.0,1.0,1.0,1.0,1.0,1.0,1.0,1.0,1.0,1.0,1.0,1.0,1.0,1.0,1.0,1.0,1.0,1.0,1.0,1.0,1.0,1.0,1.0,1.0,1.0,1.0,1.0,1.0,1.0,1.0,1.0,1.0,1.0,1.0,1.0,1.0,1.0,1.0,2.0,2.0,2.0,2.0,2.0,2.0,2.0,2.0,2.0,2.0,2.0,2.0,2.0,2.0,2.0,2.0,2.0,2.0,2.0,2.0,2.0,2.0,2.0,2.0,2.0,2.0,2.0,2.0,2.0,2.0,2.0,2.0,2.0,2.0,2.0,2.0,2.0,2.0,2.0,2.0,2.0,2.0,2.0,2.0,2.0,2.0,2.0,2.0,2.0,2.0,];
 > var NAME='iris-petal-lasso';
-> var CID=234;
+> var CID=44;
 > var W=560,H=360,R=5.0,ALPHA=0.7;
 > var COLOR='#4a9eff',SELCOLOR='#e3116c';
 > var TITLE='Iris: petal length vs petal width (colour = variety)',XLAB='petal.length',YLAB='petal.width';
 > var XB=null,YB=null;
-> var cv=document.getElementById('sc_234_iris-petal-lasso');
+> var cv=document.getElementById('sc_44_iris-petal-lasso');
 > if(!cv)return;
 > var ctx=cv.getContext('2d');
 > if(!PTS.length){return;}
@@ -228,6 +228,50 @@ showMarkdown chosen
 > | sepal.length<br>Double | sepal.width<br>Double | petal.length<br>Double | petal.width<br>Double | variety<br>Text |
 > | -----------------------|-----------------------|------------------------|-----------------------|---------------- |
 
+## Feature engineering
+
+Before splitting, we add a few derived features using the **typed** DataFrame
+API (`DataFrame.Typed`). We `freeze` the untyped frame into a schema-checked
+`TypedDataFrame`, `derive` new columns whose names and element types are verified
+at compile time, then `thaw` back so the rest of the pipeline (split, fit,
+score) picks them up automatically.
+
+The three additions are classic Iris shape features: **petal area**, **sepal
+area**, and the **petal aspect ratio** (length ÷ width).
+
+```haskell
+import qualified DataFrame.Typed as DT
+import DataFrame.Typed (Column, TypedDataFrame)
+
+type IrisCols =
+    '[ Column "sepal.length" Double
+     , Column "sepal.width"  Double
+     , Column "petal.length" Double
+     , Column "petal.width"  Double
+     , Column "variety"      T.Text
+     ]
+
+let tdf = either (error . T.unpack) id
+            (DT.freezeWithError df :: Either T.Text (TypedDataFrame IrisCols))
+
+let featured =
+        DT.thaw $ tdf
+            |> DT.derive @"petal.area"  (DT.col @"petal.length" * DT.col @"petal.width")
+            |> DT.derive @"sepal.area"  (DT.col @"sepal.length" * DT.col @"sepal.width")
+            |> DT.derive @"petal.ratio" (DT.col @"petal.length" / DT.col @"petal.width")
+
+displayMarkdown $ D.toMarkdown' $ D.take 5 featured
+```
+
+> <!-- scripths:mime text/markdown -->
+> | sepal.length<br>Double | sepal.width<br>Double | petal.length<br>Double | petal.width<br>Double | variety<br>Text | petal.area<br>Double | sepal.area<br>Double | petal.ratio<br>Double |
+> | -----------------------|-----------------------|------------------------|-----------------------|-----------------|----------------------|----------------------|---------------------- |
+> | 5.1                    | 3.5                   | 1.4                    | 0.2                   | Setosa          | 0.27999999999999997  | 17.849999999999998   | 6.999999999999999     |
+> | 4.9                    | 3.0                   | 1.4                    | 0.2                   | Setosa          | 0.27999999999999997  | 14.700000000000001   | 6.999999999999999     |
+> | 4.7                    | 3.2                   | 1.3                    | 0.2                   | Setosa          | 0.26                 | 15.040000000000001   | 6.5                   |
+> | 4.6                    | 3.1                   | 1.5                    | 0.2                   | Setosa          | 0.30000000000000004  | 14.26                | 7.5                   |
+> | 5.0                    | 3.6                   | 1.4                    | 0.2                   | Setosa          | 0.27999999999999997  | 18.0                 | 6.999999999999999     |
+
 ## Splitting into training and test sets
 
 `randomSplit` is the equivalent of scikit-learn's `train_test_split`. We hold
@@ -247,8 +291,8 @@ let (trainDf, testDf) = D.randomSplit (mkStdGen (fromMaybe 42 (readMaybe n'))) 0
 ```
 
 > <!-- scripths:mime text/html -->
-> <input type='text' value='54' oninput="parent.postMessage({type:'widget',cellId:238,name:'seed',value:this.value,sel:this.selectionStart},'*')">
-> ((109,5),(41,5))
+> <input type='text' value='42' oninput="parent.postMessage({type:'widget',cellId:48,name:'seed',value:this.value,sel:this.selectionStart},'*')">
+> ((104,5),(46,5))
 
 ## Fitting the decision tree
 
@@ -272,17 +316,15 @@ putStrLn $ D.prettyPrint model
 ```
 
 > <!-- scripths:mime text/plain -->
-> if petal.length .<= 3.9
->   then if sepal.width .- petal.width .<= 1.7000000000000002
->     then "Versicolor"
->     else "Setosa"
->   else if petal.width .< 1.8
->     then if petal.length .> 5.0
+> if petal.width .> 0.4
+>   then if petal.width .< 1.8
+>     then if petal.length .> 4.9
 >       then "Virginica"
->       else if sepal.length .>= 5.0
->         then "Versicolor"
->         else "Virginica"
+>       else if sepal.length .< 5.0
+>         then "Virginica"
+>         else "Versicolor"
 >     else "Virginica"
+>   else "Setosa"
 
 ## Making predictions
 
@@ -307,7 +349,7 @@ scored |> D.select ["variety", "predicted"]
 > | Setosa          | Setosa            |
 > | Setosa          | Setosa            |
 > | Setosa          | Setosa            |
-> | Setosa          | Setosa            |
+> | Setosa          | Versicolor        |
 > | Setosa          | Setosa            |
 > | Setosa          | Setosa            |
 > | Setosa          | Setosa            |
@@ -334,7 +376,7 @@ putStrLn ("Test accuracy: " ++ show (D.mean (F.col @Double "is_correct") withCor
 ```
 
 > <!-- scripths:mime text/plain -->
-> Test accuracy: 0.926829268292683
+> Test accuracy: 0.8695652173913043
 
 ## Confusion matrix
 
@@ -346,18 +388,18 @@ the mistakes.
 ```haskell
 scored |> D.groupBy ["variety", "predicted"]
        |> D.aggregate ["count" .= F.count (F.col @T.Text "variety")]
-       |> D.sortBy [D.Asc "variety", D.Asc "predicted"]
+       |> D.sortBy [D.Asc (D.col @T.Text "variety"), D.Asc (D.col @T.Text "predicted")]
        |> showMarkdown
 ```
 
 > <!-- scripths:mime text/markdown -->
 > | variety<br>Text | predicted<br>Text | count<br>Int |
 > | ----------------|-------------------|------------- |
-> | Versicolor      | Versicolor        | 16           |
-> | Virginica       | Virginica         | 10           |
-> | Virginica       | Versicolor        | 1            |
 > | Setosa          | Setosa            | 12           |
-> | Versicolor      | Virginica         | 2            |
+> | Setosa          | Versicolor        | 2            |
+> | Versicolor      | Versicolor        | 14           |
+> | Versicolor      | Virginica         | 4            |
+> | Virginica       | Virginica         | 14           |
 
 ## Conclusion
 
