@@ -32,12 +32,12 @@ displayWaterfall s = do
 In CSG modelling, you start with simple "primitive" shapes, such as a cylinder.
 
 ```haskell
-displayWaterfall W.unitCylinder
+displayWaterfall W.centeredCylinder
 ```
 
 > <!-- scripths:mime text/html -->
 > <script type="module" src="https://ajax.googleapis.com/ajax/libs/model-viewer/4.3.1/model-viewer.min.js"></script>
-> <model-viewer src="/api/asset?path=waterfall/models/745760.glb" ar shadow-intensity="1" environment-image="/api/asset?path=waterfall/lighting.hdr" camera-controls touch-action="pan-y" style="width:100%;height:400px"></model-viewer>
+> <model-viewer src="/api/asset?path=waterfall/models/698147.glb" ar shadow-intensity="1" environment-image="/api/asset?path=waterfall/lighting.hdr" camera-controls touch-action="pan-y" style="width:100%;height:400px"></model-viewer>
 
 Primitives can be transformed, for instance by scaling them.
 
@@ -50,7 +50,7 @@ displayWaterfall scaledCylinder
 
 > <!-- scripths:mime text/html -->
 > <script type="module" src="https://ajax.googleapis.com/ajax/libs/model-viewer/4.3.1/model-viewer.min.js"></script>
-> <model-viewer src="/api/asset?path=waterfall/models/343023.glb" ar shadow-intensity="1" environment-image="/api/asset?path=waterfall/lighting.hdr" camera-controls touch-action="pan-y" style="width:100%;height:400px"></model-viewer>
+> <model-viewer src="/api/asset?path=waterfall/models/976016.glb" ar shadow-intensity="1" environment-image="/api/asset?path=waterfall/lighting.hdr" camera-controls touch-action="pan-y" style="width:100%;height:400px"></model-viewer>
 
 Or by rotating them.
 
@@ -63,7 +63,7 @@ displayWaterfall rotatedCylinder
 
 > <!-- scripths:mime text/html -->
 > <script type="module" src="https://ajax.googleapis.com/ajax/libs/model-viewer/4.3.1/model-viewer.min.js"></script>
-> <model-viewer src="/api/asset?path=waterfall/models/812085.glb" ar shadow-intensity="1" environment-image="/api/asset?path=waterfall/lighting.hdr" camera-controls touch-action="pan-y" style="width:100%;height:400px"></model-viewer>
+> <model-viewer src="/api/asset?path=waterfall/models/953028.glb" ar shadow-intensity="1" environment-image="/api/asset?path=waterfall/lighting.hdr" camera-controls touch-action="pan-y" style="width:100%;height:400px"></model-viewer>
 
 CSG modelling is all about using "Boolean operators" to combine pairs of solids. 
 
@@ -80,7 +80,7 @@ displayWaterfall cross
 
 > <!-- scripths:mime text/html -->
 > <script type="module" src="https://ajax.googleapis.com/ajax/libs/model-viewer/4.3.1/model-viewer.min.js"></script>
-> <model-viewer src="/api/asset?path=waterfall/models/750659.glb" ar shadow-intensity="1" environment-image="/api/asset?path=waterfall/lighting.hdr" camera-controls touch-action="pan-y" style="width:100%;height:400px"></model-viewer>
+> <model-viewer src="/api/asset?path=waterfall/models/688920.glb" ar shadow-intensity="1" environment-image="/api/asset?path=waterfall/lighting.hdr" camera-controls touch-action="pan-y" style="width:100%;height:400px"></model-viewer>
 
 Because "union" is such a useful operator, Waterfall-CAD uses it in the `Monoid` instance for Solids, which means we can union two solids together using the `<>` operator.
 
@@ -91,7 +91,7 @@ displayWaterfall threeDCross
 
 > <!-- scripths:mime text/html -->
 > <script type="module" src="https://ajax.googleapis.com/ajax/libs/model-viewer/4.3.1/model-viewer.min.js"></script>
-> <model-viewer src="/api/asset?path=waterfall/models/816198.glb" ar shadow-intensity="1" environment-image="/api/asset?path=waterfall/lighting.hdr" camera-controls touch-action="pan-y" style="width:100%;height:400px"></model-viewer>
+> <model-viewer src="/api/asset?path=waterfall/models/649442.glb" ar shadow-intensity="1" environment-image="/api/asset?path=waterfall/lighting.hdr" camera-controls touch-action="pan-y" style="width:100%;height:400px"></model-viewer>
 
 Waterfall-CAD has other primitive solids, such as cubes.
 
@@ -102,7 +102,7 @@ displayWaterfall cube
 
 > <!-- scripths:mime text/html -->
 > <script type="module" src="https://ajax.googleapis.com/ajax/libs/model-viewer/4.3.1/model-viewer.min.js"></script>
-> <model-viewer src="/api/asset?path=waterfall/models/89980.glb" ar shadow-intensity="1" environment-image="/api/asset?path=waterfall/lighting.hdr" camera-controls touch-action="pan-y" style="width:100%;height:400px"></model-viewer>
+> <model-viewer src="/api/asset?path=waterfall/models/330063.glb" ar shadow-intensity="1" environment-image="/api/asset?path=waterfall/lighting.hdr" camera-controls touch-action="pan-y" style="width:100%;height:400px"></model-viewer>
 
 And spheres.
 
@@ -113,7 +113,7 @@ displayWaterfall sphere
 
 > <!-- scripths:mime text/html -->
 > <script type="module" src="https://ajax.googleapis.com/ajax/libs/model-viewer/4.3.1/model-viewer.min.js"></script>
-> <model-viewer src="/api/asset?path=waterfall/models/4903.glb" ar shadow-intensity="1" environment-image="/api/asset?path=waterfall/lighting.hdr" camera-controls touch-action="pan-y" style="width:100%;height:400px"></model-viewer>
+> <model-viewer src="/api/asset?path=waterfall/models/603296.glb" ar shadow-intensity="1" environment-image="/api/asset?path=waterfall/lighting.hdr" camera-controls touch-action="pan-y" style="width:100%;height:400px"></model-viewer>
 
 Another Boolean operator used in CSG modelling is "intersection", which takes the region common to two solids.  
 
@@ -124,7 +124,7 @@ displayWaterfall roundedCube
 
 > <!-- scripths:mime text/html -->
 > <script type="module" src="https://ajax.googleapis.com/ajax/libs/model-viewer/4.3.1/model-viewer.min.js"></script>
-> <model-viewer src="/api/asset?path=waterfall/models/569164.glb" ar shadow-intensity="1" environment-image="/api/asset?path=waterfall/lighting.hdr" camera-controls touch-action="pan-y" style="width:100%;height:400px"></model-viewer>
+> <model-viewer src="/api/asset?path=waterfall/models/654722.glb" ar shadow-intensity="1" environment-image="/api/asset?path=waterfall/lighting.hdr" camera-controls touch-action="pan-y" style="width:100%;height:400px"></model-viewer>
 
 The last CSG modelling operator we're going to use is "difference" (sometimes called subtraction).
 
@@ -137,6 +137,6 @@ displayWaterfall shape
 
 > <!-- scripths:mime text/html -->
 > <script type="module" src="https://ajax.googleapis.com/ajax/libs/model-viewer/4.3.1/model-viewer.min.js"></script>
-> <model-viewer src="/api/asset?path=waterfall/models/969630.glb" ar shadow-intensity="1" environment-image="/api/asset?path=waterfall/lighting.hdr" camera-controls touch-action="pan-y" style="width:100%;height:400px"></model-viewer>
+> <model-viewer src="/api/asset?path=waterfall/models/730779.glb" ar shadow-intensity="1" environment-image="/api/asset?path=waterfall/lighting.hdr" camera-controls touch-action="pan-y" style="width:100%;height:400px"></model-viewer>
 
 And with that, we've built the solid from the diagram.
