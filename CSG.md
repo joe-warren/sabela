@@ -1,18 +1,18 @@
 # What is Constructive Solid Geometry?
 
-Constructive Solid Geometry or CSG, is a class of 3d modelling techniques.
+Constructive Solid Geometry, or CSG, is a class of 3D modelling techniques.
 
-CSG involves taking primitive shapes, like spheres, cylinders and cubes, transforming them into a position, and then combining them with "boolean operators", like intersection, union, and difference (or subtraction).
+CSG involves taking primitive shapes, like spheres, cylinders and cubes, transforming them into a position, and then combining them with "Boolean operators", like intersection, union, and difference (or subtraction).
 
 The [Wikipedia article on Constructive Solid Geometry](https://en.wikipedia.org/wiki/Constructive_solid_geometry) uses this diagram to explain it. 
 
 ![](/api/asset?path=waterfall/csg_tree.png)
 
-This notebook is going to break this down, using a Haskell library called [Waterfall-CAD](https://hackage.haskell.org/package/waterfall-cad)
+In this notebook I'm going to break this diagram down, using a Haskell library called [Waterfall-CAD](https://hackage.haskell.org/package/waterfall-cad).
 
 <!-- sabela:cell -->
 
-First we're going to write a little bit of code to let us view Waterfall-CAD solids in a Sabela notebook; this uses the [`modelviewer.dev`](http://modelviewer.dev) JavaScript library.
+First we're going to write a little bit of code to let us view Waterfall-CAD solids in a Sabela notebook; this uses the [`modelviewer.dev`](http://modelviewer.dev) JavaScript library. You should feel free to ignore this code block.
 ```haskell
 -- cabal: build-depends: waterfall-cad, linear, random
 import qualified Waterfall as W
@@ -29,11 +29,9 @@ displayWaterfall s = do
     ]
 ```
 
-In CSG modeling, you start with simple "primitive" shapes, such as a sphere.
+In CSG modelling, you start with simple "primitive" shapes, such as a cylinder.
 
 ```haskell
--- cabal: build-depends: waterfall-cad
-
 displayWaterfall W.unitCylinder
 ```
 
@@ -56,7 +54,7 @@ displayWaterfall scaledCylinder
 
 Or by rotating them.
 
-In Waterfall CAD, rotations are specified in [radians](https://en.wikipedia.org/wiki/Radian), so a quarter turn is a rotation of π/2.
+In Waterfall-CAD, rotations are specified in [radians](https://en.wikipedia.org/wiki/Radian), so a quarter turn is a rotation of π/2.
 
 ```haskell
 rotatedCylinder = W.rotate (unit _y) (pi/2) scaledCylinder
@@ -67,7 +65,7 @@ displayWaterfall rotatedCylinder
 > <script type="module" src="https://ajax.googleapis.com/ajax/libs/model-viewer/4.3.1/model-viewer.min.js"></script>
 > <model-viewer src="/api/asset?path=waterfall/models/812085.glb" ar shadow-intensity="1" environment-image="/api/asset?path=waterfall/lighting.hdr" camera-controls touch-action="pan-y" style="width:100%;height:400px"></model-viewer>
 
-CSG modeling is all about using "Boolean operators" to combine pairs of solids. 
+CSG modelling is all about using "Boolean operators" to combine pairs of solids. 
 
 One of the most common Boolean operators is "union", which merges the volumes of the two shapes.
 
@@ -76,7 +74,7 @@ In the Wikipedia diagram, "union" was represented with the "∪" character.
 Merging our cylinder with the rotated cylinder gives us a cross shape. 
 
 ```haskell
-cross = scaledCylinder <> rotatedCylinder
+cross = scaledCylinder `W.union` rotatedCylinder
 displayWaterfall cross
 ```
 
@@ -84,7 +82,7 @@ displayWaterfall cross
 > <script type="module" src="https://ajax.googleapis.com/ajax/libs/model-viewer/4.3.1/model-viewer.min.js"></script>
 > <model-viewer src="/api/asset?path=waterfall/models/750659.glb" ar shadow-intensity="1" environment-image="/api/asset?path=waterfall/lighting.hdr" camera-controls touch-action="pan-y" style="width:100%;height:400px"></model-viewer>
 
-Because "union" is such a useful operator, Waterfall-CAD uses it in the `monoid` instance for Solids, which means we can union two solids together using the Monoid `<>` operator.
+Because "union" is such a useful operator, Waterfall-CAD uses it in the `Monoid` instance for Solids, which means we can union two solids together using the `<>` operator.
 
 ```haskell
 threeDCross = cross <> W.rotate (unit _x) (pi/2) scaledCylinder
@@ -95,7 +93,7 @@ displayWaterfall threeDCross
 > <script type="module" src="https://ajax.googleapis.com/ajax/libs/model-viewer/4.3.1/model-viewer.min.js"></script>
 > <model-viewer src="/api/asset?path=waterfall/models/816198.glb" ar shadow-intensity="1" environment-image="/api/asset?path=waterfall/lighting.hdr" camera-controls touch-action="pan-y" style="width:100%;height:400px"></model-viewer>
 
-Waterfall CAD has other primitive solids; such as cubes.
+Waterfall-CAD has other primitive solids, such as cubes.
 
 ```haskell
 cube = W.scale 3 W.centeredCube 
@@ -106,7 +104,7 @@ displayWaterfall cube
 > <script type="module" src="https://ajax.googleapis.com/ajax/libs/model-viewer/4.3.1/model-viewer.min.js"></script>
 > <model-viewer src="/api/asset?path=waterfall/models/89980.glb" ar shadow-intensity="1" environment-image="/api/asset?path=waterfall/lighting.hdr" camera-controls touch-action="pan-y" style="width:100%;height:400px"></model-viewer>
 
-And Spheres
+And spheres.
 
 ```haskell
 sphere = W.scale 2 W.unitSphere
@@ -117,7 +115,7 @@ displayWaterfall sphere
 > <script type="module" src="https://ajax.googleapis.com/ajax/libs/model-viewer/4.3.1/model-viewer.min.js"></script>
 > <model-viewer src="/api/asset?path=waterfall/models/4903.glb" ar shadow-intensity="1" environment-image="/api/asset?path=waterfall/lighting.hdr" camera-controls touch-action="pan-y" style="width:100%;height:400px"></model-viewer>
 
-Another Boolean operator used in CSG modeling is "intersection", which takes the region common to two solids.  
+Another Boolean operator used in CSG modelling is "intersection", which takes the region common to two solids.  
 
 ```haskell
 roundedCube = cube `W.intersection` sphere
@@ -128,7 +126,7 @@ displayWaterfall roundedCube
 > <script type="module" src="https://ajax.googleapis.com/ajax/libs/model-viewer/4.3.1/model-viewer.min.js"></script>
 > <model-viewer src="/api/asset?path=waterfall/models/569164.glb" ar shadow-intensity="1" environment-image="/api/asset?path=waterfall/lighting.hdr" camera-controls touch-action="pan-y" style="width:100%;height:400px"></model-viewer>
 
-The last CSG modeling operator we're going do use is "difference" (sometimes called subtraction).
+The last CSG modelling operator we're going to use is "difference" (sometimes called subtraction).
 
 This is used to remove one solid from another.
 
